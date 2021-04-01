@@ -3,6 +3,7 @@ import os
 from aiocqhttp.api import Api
 from random import randint as ri
 
+KUSA_JPG = '[CQ:image,file=b7e3ba3500b150db483fc9b7f69014cb.image]' # 草.jpg
 PREVMSG = os.path.expanduser("~/.kusa/prevmsg.json")
 
 MAX_MESSAGE_NUM = 5
@@ -35,10 +36,26 @@ class Kusa:
 
         replys = []
 
+        ##############################
+        #   both private and group   #
+        ##############################
+
+        ''' 草 '''
+        if msg.startswith('草'):
+            if ri(1, 4) == 1:
+                replys.append('草')
+            elif ri(1, 9) == 1:
+                replys.append(KUSA_JPG)
+
+        if KUSA_JPG in msg and ri(1, 3) == 1:
+            replys.append(KUSA_JPG)
+
         if message['message_type'] == 'private':
             return '\n'.join(replys) if replys else None
-            
-        ''' group only '''
+
+        ##############################    
+        #   group only               #
+        ##############################
 
         ''' 复读 '''
         prevmsg = loadjson(PREVMSG)
@@ -49,7 +66,7 @@ class Kusa:
             idx = msg_list.index(msg)
         except ValueError:
             idx = None
-        if idx is not None:
+        if idx is not None and not reply:
             prevmsg[group][idx][msg] += 1
             if prevmsg[group][idx][msg] >= ri(MIN_TIME_TO_REPEAT, MAX_TIME_TO_REPEAT):
                 await self.api.send_group_msg(group_id=group, message=msg)
