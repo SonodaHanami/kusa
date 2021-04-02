@@ -3,6 +3,11 @@ import os
 from aiocqhttp.api import Api
 from random import randint as ri
 
+from .util import *
+from . import whois
+
+
+CONFIG = load_config()
 KUSA_JPG = '[CQ:image,file=b7e3ba3500b150db483fc9b7f69014cb.image]' # 草.jpg
 PREVMSG = os.path.expanduser("~/.kusa/prevmsg.json")
 
@@ -10,12 +15,6 @@ MAX_MESSAGE_NUM = 5
 MIN_TIME_TO_REPEAT = 2
 MAX_TIME_TO_REPEAT = 4
 
-def loadjson(jsonfile):
-    return json.load(open(jsonfile, 'r'))
-
-def dumpjson(jsondata, jsonfile):
-    with open(jsonfile, 'w') as f:
-        json.dump(jsondata, f, ensure_ascii=False, indent=4)
 
 class Kusa:
     Passive = True
@@ -24,6 +23,12 @@ class Kusa:
 
     def __init__(self, bot_api: Api, **kwargs):
         self.api = bot_api
+
+        self.whois = whois.Whois()
+
+        self.kusa_modules = [
+            self.whois,
+        ]
 
     def match(self, msg):
         return 1
@@ -57,6 +62,11 @@ class Kusa:
         #   group only               #
         ##############################
 
+        for k in self.kusa_modules:
+            reply = await k.execute_async(message)
+            if reply:
+                replys.append(reply)
+
         ''' 复读 '''
         prevmsg = loadjson(PREVMSG)
         if group not in prevmsg:
@@ -66,7 +76,7 @@ class Kusa:
             idx = msg_list.index(msg)
         except ValueError:
             idx = None
-        if idx is not None and not reply:
+        if idx is not None and not replys:
             prevmsg[group][idx][msg] += 1
             if prevmsg[group][idx][msg] >= ri(MIN_TIME_TO_REPEAT, MAX_TIME_TO_REPEAT):
                 await self.api.send_group_msg(group_id=group, message=msg)
