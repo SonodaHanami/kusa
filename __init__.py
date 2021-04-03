@@ -1,6 +1,7 @@
 import os
 import json
 from .kusa import Kusa
+from .utils import *
 
 __all__ = [
     'Kusa',
@@ -9,6 +10,7 @@ __all__ = [
 default_config = {
     'ADMIN': 0,
     'BOT': 0,
+    'SETU_APIKEY': '',
 }
 
 config_path = os.path.join(
@@ -16,5 +18,4 @@ config_path = os.path.join(
     'config.json'
 )
 if not os.path.exists(config_path):
-    with open(config_path, 'w') as f:
-        json.dump(default_config, f, indent=4, ensure_ascii=False)
+    dumpjson(default_config, config_path)

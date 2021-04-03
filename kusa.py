@@ -1,10 +1,11 @@
 import json
 import os
 from aiocqhttp.api import Api
+from functools import reduce
 from random import randint as ri
 
-from .util import *
-from . import whois
+from .utils import *
+from . import setu, whois
 
 
 CONFIG = load_config()
@@ -21,14 +22,23 @@ class Kusa:
     Active = False
     Request = False
 
-    def __init__(self, bot_api: Api, **kwargs):
-        self.api = bot_api
+    def __init__(self, **kwargs):
+        self.api = kwargs['bot_api']
 
+        self.setu = setu.Setu(**kwargs)
         self.whois = whois.Whois()
 
         self.kusa_modules = [
+            self.setu,
             self.whois,
         ]
+
+    def jobs(self):
+        jobs = []
+        for k in self.kusa_modules:
+            if hasattr(k, 'jobs'):
+                jobs.append(k.jobs())
+        return reduce(lambda x, y: x+y, jobs)
 
     def match(self, msg):
         return 1

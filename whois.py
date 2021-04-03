@@ -5,7 +5,7 @@ import random
 import re
 import sys
 from datetime import datetime, timedelta
-from .util import *
+from .utils import *
 
 
 CONFIG = load_config()
