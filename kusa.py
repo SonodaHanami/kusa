@@ -76,15 +76,19 @@ class Kusa:
             idx = msg_list.index(msg)
         except ValueError:
             idx = None
-        if idx is not None and not replys:
-            prevmsg[group][idx][msg] += 1
-            if prevmsg[group][idx][msg] >= ri(MIN_TIME_TO_REPEAT, MAX_TIME_TO_REPEAT):
-                await self.api.send_group_msg(group_id=group, message=msg)
+        if replys:
+            if idx is not None:
                 prevmsg[group].remove(prevmsg[group][idx])
-            else:
-                prevmsg[group].append(prevmsg[group].pop(idx))
         else:
-            prevmsg[group].append({msg: 1})
+            if idx is not None:
+                prevmsg[group][idx][msg] += 1
+                if prevmsg[group][idx][msg] >= ri(MIN_TIME_TO_REPEAT, MAX_TIME_TO_REPEAT):
+                    await self.api.send_group_msg(group_id=group, message=msg)
+                    prevmsg[group].remove(prevmsg[group][idx])
+                else:
+                    prevmsg[group].append(prevmsg[group].pop(idx))
+            else:
+                prevmsg[group].append({msg: 1})
         while len(prevmsg[group]) > MAX_MESSAGE_NUM:
             prevmsg[group].remove(prevmsg[group][0])
         dumpjson(prevmsg, PREVMSG)
