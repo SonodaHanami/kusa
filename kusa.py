@@ -1,11 +1,12 @@
 import json
 import os
-from aiocqhttp.api import Api
 from functools import reduce
 from random import randint as ri
 
 from .utils import *
-from . import setu, whois
+from . import (
+    github, setu, whois
+)
 
 
 CONFIG = load_config()
@@ -25,12 +26,10 @@ class Kusa:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
-        self.setu = setu.Setu(**kwargs)
-        self.whois = whois.Whois()
-
         self.kusa_modules = [
-            self.setu,
-            self.whois,
+            github.Github(**kwargs),
+            setu.Setu(**kwargs),
+            whois.Whois(**kwargs),
         ]
 
     def jobs(self):

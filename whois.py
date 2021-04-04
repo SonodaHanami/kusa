@@ -18,7 +18,7 @@ MEMBER = os.path.expanduser('~/.kusa/member.json')
 
 
 class Whois:
-    def __init__(self):
+    def __init__(self, **kwargs):
         self._rosters = {}
         self._update()
 

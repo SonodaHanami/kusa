@@ -2,7 +2,9 @@ import os
 import json
 
 
-def loadjson(jsonfile):
+def loadjson(jsonfile, default={}):
+    if not os.path.exists(jsonfile):
+        return default
     return json.load(open(jsonfile, 'r'))
 
 def dumpjson(jsondata, jsonfile):
