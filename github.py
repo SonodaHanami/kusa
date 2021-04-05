@@ -90,6 +90,7 @@ class Github:
         githubdata = loadjson(GITHUB)
 
         for repo in githubdata:
+            print('{}查询Github更新：{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), repo))
             commits = self.get_repo_commits(repo)
             if not commits:
                 continue
@@ -102,6 +103,7 @@ class Github:
                 idx = commits.index(last)
                 commits = commits[:idx]
             updates += commits
+        print('{}共查询到{}条更新'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), len(updates)))
 
         for repo, groups in githubdata.items():
             for commit in updates:
