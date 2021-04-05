@@ -113,6 +113,7 @@ class Github:
                                 commit['time'], commit['author'], commit['msg'], commit['repo']
                             )
                         })
+        news.reverse()
         return news
 
 
