@@ -55,6 +55,7 @@ class Github:
             else:
                 githubdata[repo] = [group]
             dumpjson(githubdata, GITHUB)
+            self.get_commit_update()
             return f'订阅{repo}成功'
 
         if msg.startswith('取消订阅'):
