@@ -14,14 +14,15 @@ ADMIN = CONFIG['ADMIN']
 
 GITHUB = os.path.expanduser('~/.kusa/github.json')
 '''
-githubdata = [
-    {
-        'repo': repository_name,
-        'group': group_id,
-    },
-    {},
+githubdata = {
+    repository_name_1: [
+        subscribe_group_id_1,
+        subscribe_group_id_2,
+        ...
+    ],
+    repository_name_2: [...],
     ...
-]
+}
 '''
 class Github:
     def __init__(self, **kwargs):
@@ -30,6 +31,7 @@ class Github:
         self.latest_commits = {}
 
         self.get_commit_update()
+
 
     def jobs(self):
         trigger = CronTrigger(minute='*/15')
@@ -43,17 +45,31 @@ class Github:
         user = str(message.get("user_id", 0))
 
         if msg.startswith('订阅'):
-            repo = msg[2:]
-            githubdata = loadjson(GITHUB, [])
-            sub = {
-                'repo': repo,
-                'group': group,
-            }
-            if sub in githubdata:
-                return f'{repo}已在订阅列表中'
+            repo = msg[2:].strip()
+            githubdata = loadjson(GITHUB)
+            if repo in githubdata:
+                if group in githubdata[repo]:
+                    return f'{repo}已在订阅列表中'
+                else:
+                    githubdata[repo].append(group)
             else:
-                githubdata.append(sub)
+                githubdata[repo] = [group]
             dumpjson(githubdata, GITHUB)
+            return f'订阅{repo}成功'
+
+        if msg.startswith('取消订阅'):
+            repo = msg[4:].strip()
+            githubdata = loadjson(GITHUB)
+            if repo in githubdata:
+                if group in githubdata[repo]:
+                    githubdata[repo].remove(group)
+                    dumpjson(githubdata, GITHUB)
+                    return f'取消订阅{repo}成功'
+                else:
+                    return f'本群未订阅{repo}'
+                    githubdata[repo].append(group)
+            else:
+                return f'本群未订阅{repo}'
             return f'订阅{repo}成功'
 
         return None
@@ -71,27 +87,23 @@ class Github:
     def get_commit_update(self):
         news = []
         updates = []
-        sub_groups = {}
-        githubdata = loadjson(GITHUB, [])
+        githubdata = loadjson(GITHUB)
 
-        for sub in githubdata:
-            if sub['repo'] in sub_groups:
-                sub_groups[sub['repo']].append(sub['group'])
-            else:
-                sub_groups[sub['repo']] = [sub['group']]
-            commits = self.get_repo_commits(sub['repo'])
+        for repo in githubdata:
+            commits = self.get_repo_commits(repo)
             if not commits:
                 continue
-            last = self.latest_commits.get(sub['repo'])
-            self.latest_commits[sub['repo']] = commits[0]
+            last = self.latest_commits.get(repo)
+            self.latest_commits[repo] = commits[0]
             if last is None:
-                print('初始化{}'.format(sub['repo']))
+                print('Github订阅初始化：{}'.format(repo))
                 continue
             if last in commits:
                 idx = commits.index(last)
                 commits = commits[:idx]
             updates += commits
-        for repo, groups in sub_groups.items():
+
+        for repo, groups in githubdata.items():
             for commit in updates:
                 if commit['repo'] == repo:
                     for group in groups:
