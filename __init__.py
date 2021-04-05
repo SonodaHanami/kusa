@@ -1,6 +1,5 @@
 import os
 import json
-from .kusa import Kusa
 from .utils import *
 
 __all__ = [
@@ -19,3 +18,5 @@ config_path = os.path.join(
 )
 if not os.path.exists(config_path):
     dumpjson(default_config, config_path)
+
+from .kusa import Kusa
