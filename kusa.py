@@ -66,12 +66,13 @@ class Kusa:
                 replys.append('草')
             elif ri(1, 9) == 1:
                 replys.append(KUSA_JPG)
-
         if KUSA_JPG in msg and ri(1, 3) == 1:
             replys.append(KUSA_JPG)
 
         if msg.startswith('？') and ri(1, 3) == 1:
             replys.append('？')
+        if msg.startswith('不是') and ri(1, 3) == 1:
+            replys.append('不是，你为什么要说不是？')
 
 
         if message['message_type'] == 'private':
