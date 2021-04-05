@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from functools import reduce
 from random import randint as ri
 
@@ -73,6 +74,11 @@ class Kusa:
             replys.append('？')
         if msg.startswith('不是') and ri(1, 3) == 1:
             replys.append('不是，你为什么要说不是？')
+        prm = re.search('(.+?)不\\1', msg)
+        if '？' in msg and '是不是' in msg: # avoid Whois
+            pass
+        elif prm:
+            replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
 
 
         if message['message_type'] == 'private':
