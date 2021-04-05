@@ -79,6 +79,8 @@ class Kusa:
             pass
         elif prm:
             replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
+        if '有没有' in msg:
+            replys.append('有' if ri(1, 2) == 1 else '没有')
 
 
         if message['message_type'] == 'private':
