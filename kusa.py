@@ -70,6 +70,10 @@ class Kusa:
         if KUSA_JPG in msg and ri(1, 3) == 1:
             replys.append(KUSA_JPG)
 
+        if msg.startswith('？') and ri(1, 3) == 1:
+            replys.append('？')
+
+
         if message['message_type'] == 'private':
             return '\n'.join(replys) if replys else None
 
