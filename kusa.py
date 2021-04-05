@@ -54,6 +54,12 @@ class Kusa:
         #   both private and group   #
         ##############################
 
+        if msg.startswith('!'):
+            msg = msg[1:]
+            if msg == 'lssv':
+                return ', '.join([type(k).__name__ for k in self.kusa_modules])
+
+
         ''' 草 '''
         if msg.startswith('草'):
             if ri(1, 4) == 1:
