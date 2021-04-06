@@ -3,9 +3,12 @@ import json
 
 
 def loadjson(jsonfile, default={}):
-    if not os.path.exists(jsonfile):
-        return default
-    return json.load(open(jsonfile, 'r'))
+    try:
+        data = json.load(open(jsonfile, 'r'))
+    except:
+        data = default
+    finally:
+        return data
 
 def dumpjson(jsondata, jsonfile):
     with open(jsonfile, 'w') as f:
