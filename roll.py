@@ -29,5 +29,8 @@ class Roll:
                 prm = re.match('(\d+) +(\d+)', msg)
                 if prm:
                     return '{}'.format(ri(int(prm[1]), int(prm[2])))
+                prm = re.match('(\d+)', msg)
+                if prm:
+                    return '{}'.format(ri(1, int(prm[1])))
             except Exception as e:
                 return 'Roll error: {}'.format(e)
