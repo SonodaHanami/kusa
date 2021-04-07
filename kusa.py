@@ -7,7 +7,7 @@ from random import randint as ri
 
 from .utils import *
 from . import (
-    github, setu, whois
+    github, roll, setu, whois
 )
 
 
@@ -30,6 +30,7 @@ class Kusa:
 
         self.kusa_modules = [
             github.Github(**kwargs),
+            roll.Roll(**kwargs),
             setu.Setu(**kwargs),
             whois.Whois(**kwargs),
         ]
