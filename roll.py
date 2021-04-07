@@ -2,6 +2,8 @@ import random
 import re
 from random import randint as ri
 
+MAX_DICE = 10
+
 class Roll:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
@@ -25,6 +27,8 @@ class Roll:
                     for i in range(int(p[0])):
                         replys.append('{}'.format(ri(1, int(p[1]))))
                 if replys:
+                    if len(replys) > MAX_DICE:
+                        return '唔得，骰子不够叻'
                     return ' '.join(replys)
                 prm = re.match('(\d+) +(\d+)', msg)
                 if prm:
