@@ -3,6 +3,7 @@ import re
 from random import randint as ri
 
 MAX_DICE = 10
+MAX_PLANE = 20
 
 class Roll:
     def __init__(self, **kwargs):
@@ -24,6 +25,8 @@ class Roll:
             try:
                 prm = re.findall('(\d+)d(\d+)', msg)
                 for p in prm:
+                    if int(p[1]) > MAX_PLANE:
+                        return '这么多面，建议玩球'
                     for i in range(int(p[0])):
                         replys.append('{}'.format(ri(1, int(p[1]))))
                 if replys:
