@@ -44,10 +44,11 @@ class Roll:
                 if prm:
                     l, r = min(int(prm[1]), int(prm[2])), max(int(prm[1]), int(prm[2]))
                     return '{}'.format(ri(l, r))
-                prm = re.match('(\d+)', msg)
+                prm = re.match('([\+\-]?\d+)', msg)
                 if prm:
-                    if int(prm[1]) <= 0:
-                        return 0
-                    return '{}'.format(ri(1, int(prm[1])))
+                    n = int(prm[1])
+                    if n <= 0:
+                        return '{}'.format(ri(n, 0))
+                    return '{}'.format(ri(1, n))
             except Exception as e:
                 return 'Roll error: {}'.format(e)
