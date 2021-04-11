@@ -18,6 +18,22 @@ class Bangumi:
         group = str(message.get("group_id", ''))
         user = str(message.get("user_id", 0))
 
+        if '什么时候更新' in msg:
+            t = re.sub('什么时候更新', '', msg)
+            if t == '':
+                return None
+            res = json.loads(requests.get(BANGUMI_API).text)['result']
+            now = int(datetime.now().timestamp())
+            for i in res:
+                for s in i['seasons']:
+                    if now > s['pub_ts']:
+                        continue
+                    if t in s['title']:
+                        return '{} 下一集 {} 将于 {} {} 更新\n{}'.format(
+                            s['title'], s['pub_index'], i['date'], s['pub_time'], s['url']
+                        )
+            return '我不知道'
+
         return None
 
 
