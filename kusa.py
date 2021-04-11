@@ -7,7 +7,7 @@ from random import randint as ri
 
 from .utils import *
 from . import (
-    github, roll, setu, whois
+    bilibili, github, roll, setu, whois
 )
 
 
@@ -22,13 +22,14 @@ MAX_TIME_TO_REPEAT = 4
 
 class Kusa:
     Passive = True
-    Active = False
+    Active = True
     Request = False
 
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
         self.kusa_modules = [
+            bilibili.Bangumi(**kwargs),
             github.Github(**kwargs),
             roll.Roll(**kwargs),
             setu.Setu(**kwargs),
