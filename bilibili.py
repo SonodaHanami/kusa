@@ -18,6 +18,24 @@ class Bangumi:
         group = str(message.get("group_id", ''))
         user = str(message.get("user_id", 0))
 
+        if msg == '订阅番剧更新':
+            bilibilidata = loadjson(BILIBILI)
+            if group in bilibilidata['bangumi_subscribe_groups']:
+                return '本群已订阅番剧更新'
+            else:
+                bilibilidata['bangumi_subscribe_groups'].append(group)
+                dumpjson(bilibilidata, BILIBILI)
+                return '订阅番剧更新成功'
+
+        if msg == '取消订阅番剧更新':
+            bilibilidata = loadjson(BILIBILI)
+            if group in bilibilidata['bangumi_subscribe_groups']:
+                bilibilidata['bangumi_subscribe_groups'].remove(group)
+                dumpjson(bilibilidata, BILIBILI)
+                return '取消订阅番剧更新成功'
+            else:
+                return '本群未订阅番剧更新'
+
         if '什么时候更新' in msg:
             t = re.sub('什么时候更新', '', msg)
             if t == '':
