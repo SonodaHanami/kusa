@@ -55,8 +55,8 @@ class Github:
         group = str(message.get("group_id", ''))
         user = str(message.get("user_id", 0))
 
-        if msg.startswith('订阅'):
-            repo = msg[2:].strip()
+        if re.match('订阅github', msg, re.I):
+            repo = msg[8:].strip()
             githubdata = loadjson(GITHUB)
             first_sub = False
             if repo in githubdata:
@@ -75,8 +75,8 @@ class Github:
                 self.get_commit_update()
             return f'订阅{repo}成功'
 
-        if msg.startswith('取消订阅'):
-            repo = msg[4:].strip()
+        if re.match('取消订阅github', msg, re.I):
+            repo = msg[10:].strip()
             githubdata = loadjson(GITHUB)
             if repo in githubdata:
                 if group in githubdata[repo]['subscribe_groups']:
