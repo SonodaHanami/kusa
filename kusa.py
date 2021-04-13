@@ -36,6 +36,8 @@ class Kusa:
             whois.Whois(**kwargs),
         ]
 
+        self.disabled = []
+
     def jobs(self):
         jobs = []
         for k in self.kusa_modules:
@@ -62,6 +64,14 @@ class Kusa:
             msg = msg[1:]
             if msg == 'lssv':
                 return ', '.join([type(k).__name__ for k in self.kusa_modules])
+            if msg == 'enable':
+                if group in self.disabled:
+                    self.disabled.remove(group)
+                    return 'enabled'
+            if msg == 'disable':
+                if group not in self.disabled:
+                    self.disabled.append(group)
+                    return 'disabled'
 
 
         ''' 草 '''
@@ -73,29 +83,30 @@ class Kusa:
         if KUSA_JPG in msg and ri(1, 3) == 1:
             replys.append(KUSA_JPG)
 
-        if msg.startswith('？') and ri(1, 3) == 1:
-            replys.append('？')
-        if msg.startswith('不是') and ri(1, 3) == 1:
-            replys.append('不是，你为什么要说不是？')
-        prm = re.search('(.+?)不\\1', msg)
-        if '？' in msg and '是不是' in msg: # avoid Whois
-            pass
-        elif prm:
-            replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
-        if '有没有' in msg:
-            replys.append('有' if ri(1, 2) == 1 else '没有')
+        if group not in self.disabled:
+            if msg.startswith('？') and ri(1, 3) == 1:
+                replys.append('？')
+            if msg.startswith('不是') and ri(1, 3) == 1:
+                replys.append('不是，你为什么要说不是？')
+            prm = re.search('(.+?)不\\1', msg)
+            if '？' in msg and '是不是' in msg: # avoid Whois
+                pass
+            elif prm:
+                replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
+            if '有没有' in msg:
+                replys.append('有' if ri(1, 2) == 1 else '没有')
 
-        if ri(1, 100) == 1 and '[CQ:' not in msg:
-            replys.append(random.choice([
-                '确实',
-                '有一说一，确实',
-                '就是啊',
-                '就是说啊',
-                '嗯嗯，是啊',
-                '啊这',
-                '……',
-                '。。。',
-            ]))
+            if ri(1, 100) == 1 and '[CQ:' not in msg:
+                replys.append(random.choice([
+                    '确实',
+                    '有一说一，确实',
+                    '就是啊',
+                    '就是说啊',
+                    '嗯嗯，是啊',
+                    '啊这',
+                    '……',
+                    '。。。',
+                ]))
 
 
         if message['message_type'] == 'private':
