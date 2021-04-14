@@ -12,6 +12,7 @@ from . import (
 
 
 CONFIG = load_config()
+ADMIN = CONFIG['ADMIN']
 KUSA_JPG = '[CQ:image,file=b7e3ba3500b150db483fc9b7f69014cb.image]' # 草.jpg
 PREVMSG = os.path.expanduser("~/.kusa/prevmsg.json")
 
@@ -36,7 +37,7 @@ class Kusa:
             whois.Whois(**kwargs),
         ]
 
-        self.disabled = []
+        self.joker_disabled = []
 
     def jobs(self):
         jobs = []
@@ -52,7 +53,6 @@ class Kusa:
         msg = message['raw_message'].strip()
         group = str(message.get('group_id', ''))
         user = str(message.get('user_id', ''))
-        nickname = message["sender"].get("nickname", "")
 
         replys = []
 
@@ -60,19 +60,7 @@ class Kusa:
         #   both private and group   #
         ##############################
 
-        if msg.startswith('!'):
-            msg = msg[1:]
-            if msg == 'lssv':
-                return ', '.join([type(k).__name__ for k in self.kusa_modules])
-            if msg == 'enable':
-                if group in self.disabled:
-                    self.disabled.remove(group)
-                    return 'enabled'
-            if msg == 'disable':
-                if group not in self.disabled:
-                    self.disabled.append(group)
-                    return 'disabled'
-
+        self.admin(message)
 
         ''' 草 '''
         if msg.startswith('草'):
@@ -83,31 +71,7 @@ class Kusa:
         if KUSA_JPG in msg and ri(1, 3) == 1:
             replys.append(KUSA_JPG)
 
-        if group not in self.disabled:
-            if msg.startswith('？') and ri(1, 3) == 1:
-                replys.append('？')
-            if msg.startswith('不是') and ri(1, 3) == 1:
-                replys.append('不是，你为什么要说不是？')
-            prm = re.search('(.+?)不\\1', msg)
-            if '？' in msg and '是不是' in msg: # avoid Whois
-                pass
-            elif prm:
-                replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
-            if '有没有' in msg:
-                replys.append('有' if ri(1, 2) == 1 else '没有')
-
-            if ri(1, 100) == 1 and '[CQ:' not in msg:
-                replys.append(random.choice([
-                    '确实',
-                    '有一说一，确实',
-                    '就是啊',
-                    '就是说啊',
-                    '嗯嗯，是啊',
-                    '啊这',
-                    '……',
-                    '。。。',
-                ]))
-
+        self.joker(message, replys)
 
         if message['message_type'] == 'private':
             return '\n'.join(replys) if replys else None
@@ -120,6 +84,70 @@ class Kusa:
             reply = await k.execute_async(message)
             if reply:
                 replys.append(reply)
+
+        await self.repeater(message, replys)
+
+        return '\n'.join(replys) if replys else None
+
+
+    def admin(self, message):
+        msg = message['raw_message'].strip().lower()
+        group = str(message.get('group_id', ''))
+        user = str(message.get('user_id', ''))
+
+        if user != ADMIN:
+            return None
+        if msg.startswith('!'):
+            msg = msg[1:]
+            if msg == 'lssv':
+                return ', '.join([type(k).__name__ for k in self.kusa_modules])
+
+
+    def joker(self, message, replys):
+        msg = message['raw_message'].strip().lower()
+        group = str(message.get('group_id', ''))
+        user = str(message.get('user_id', ''))
+        nickname = message["sender"].get("nickname", "")
+
+        if msg == '!enable':
+            if group in self.joker_disabled:
+                self.joker_disabled.remove(group)
+                return 'enabled'
+        if msg == '!disable':
+            if group not in self.joker_disabled:
+                self.joker_disabled.append(group)
+                return 'joker_disabled'
+
+        if group in self.joker_disabled:
+            return None
+        if msg.startswith('？') and ri(1, 3) == 1:
+            replys.append('？')
+        if msg.startswith('不是') and ri(1, 3) == 1:
+            replys.append('不是，你为什么要说不是？')
+        prm = re.search('(.+?)不\\1', msg)
+        if '？' in msg and '是不是' in msg: # avoid Whois
+            pass
+        elif prm:
+            replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
+        if '有没有' in msg:
+            replys.append('有' if ri(1, 2) == 1 else '没有')
+
+        if ri(1, 100) == 1 and '[CQ:' not in msg:
+            replys.append(random.choice([
+                '确实',
+                '有一说一，确实',
+                '就是啊',
+                '就是说啊',
+                '嗯嗯，是啊',
+                '啊这',
+                '……',
+                '。。。',
+            ]))
+
+
+    async def repeater(self, message, replys):
+        msg = message['raw_message'].strip()
+        group = str(message.get('group_id', ''))
 
         ''' 复读 '''
         prevmsg = loadjson(PREVMSG)
@@ -147,5 +175,3 @@ class Kusa:
             prevmsg[group].remove(prevmsg[group][0])
         dumpjson(prevmsg, PREVMSG)
 
-
-        return '\n'.join(replys) if replys else None

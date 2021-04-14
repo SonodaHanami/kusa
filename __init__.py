@@ -7,8 +7,8 @@ __all__ = [
 ]
 
 default_config = {
-    'ADMIN': 0,
-    'BOT': 0,
+    'ADMIN': '',
+    'BOT': '',
     'SETU_APIKEY': '',
 }
 
