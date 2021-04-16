@@ -112,11 +112,13 @@ class Kusa:
         if msg == '!enable':
             if group in self.joker_disabled:
                 self.joker_disabled.remove(group)
-                return 'enabled'
+                replys.append('joker_enabled')
+                return None
         if msg == '!disable':
             if group not in self.joker_disabled:
                 self.joker_disabled.append(group)
-                return 'joker_disabled'
+                replys.append('joker_disabled')
+                return None
 
         if group in self.joker_disabled:
             return None
