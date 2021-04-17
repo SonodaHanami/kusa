@@ -31,7 +31,7 @@ class Whois:
         if not group:
             return None
         if msg.startswith(ATBOT):
-            msg = msg[21:].strip()
+            msg = msg[len(ATBOT):].strip()
             atbot = True
 
 
