@@ -10,6 +10,7 @@ default_config = {
     'ADMIN': '',
     'BOT': '',
     'SETU_APIKEY': '',
+    'STEAM_APIKEY': '',
 }
 
 config_path = os.path.join(

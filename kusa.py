@@ -7,7 +7,8 @@ from random import randint as ri
 
 from .utils import *
 from . import (
-    bilibili, github, roll, setu, whois
+    bilibili, github, roll, setu, steam,
+    whois,
 )
 
 
@@ -34,6 +35,7 @@ class Kusa:
             github.Github(**kwargs),
             roll.Roll(**kwargs),
             setu.Setu(**kwargs),
+            steam.Steam(**kwargs),
             whois.Whois(**kwargs),
         ]
 
