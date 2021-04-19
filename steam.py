@@ -57,6 +57,15 @@ class Steam:
             except:
                 return '使用方法：\n绑定Steam Steam好友代码（9位）（也可能是8位或10位）'
 
+        if msg.lower() == '解除绑定steam':
+            steamdata = loadjson(STEAM)
+            if steamdata.get(user):
+                del steamdata[user]
+                dumpjson(steamdata, STEAM)
+                return '解除绑定成功'
+            else:
+                return '没有找到你的绑定记录'
+
     def jobs(self):
         trigger = CronTrigger(minute='*', second='30')
         job = (trigger, self.send_news_async)
