@@ -8,6 +8,7 @@ from .utils import *
 
 BILIBILI = os.path.expanduser("~/.kusa/bilibili.json")
 BANGUMI_API = 'http://bangumi.bilibili.com/web_api/timeline_global'
+MAX_RETRIES = 5
 
 class Bangumi:
     def __init__(self, **kwargs):
@@ -40,9 +41,10 @@ class Bangumi:
             t = re.sub('什么时候更新', '', msg)
             if t == '':
                 return None
-            res = json.loads(requests.get(BANGUMI_API).text)['result']
+            bilibilidata = loadjson(BILIBILI)
+            timeline = bilibilidata['timeline']
             now = int(datetime.now().timestamp())
-            for i in res:
+            for i in timeline:
                 for s in i['seasons']:
                     if now > s['pub_ts']:
                         continue
@@ -62,12 +64,25 @@ class Bangumi:
 
 
     async def get_anime_update(self):
+        if datetime.now().hour == 0 and datetime.now().minute == 0:
+            res = []
+            retry = 0
+            while not res and retry <= MAX_RETRIES:
+                try:
+                    res = json.loads(requests.get(BANGUMI_API).text)['result']
+                except Exception as e:
+                    print(e)
+                finally:
+                    retry += 1
+            bilibilidata = loadjson(BILIBILI)
+            bilibilidata['timeline'] = res
+            dumpjson(bilibilidata, BILIBILI)
         sends = []
         bilibilidata = loadjson(BILIBILI)
         groups = bilibilidata['bangumi_subscribe_groups']
-        res = json.loads(requests.get(BANGUMI_API).text)['result']
+        timeline = bilibilidata['timeline']
         now = int(datetime.now().timestamp())
-        for i in res:
+        for i in timeline:
             delta = now - i['date_ts']
             if delta > 86400 or delta < 0:
                 continue
