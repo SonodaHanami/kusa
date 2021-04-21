@@ -62,7 +62,8 @@ class Kusa:
         #   both private and group   #
         ##############################
 
-        self.admin(message)
+        if await self.admin(message):
+            return None
 
         ''' 草 '''
         if msg.startswith('草'):
@@ -92,7 +93,7 @@ class Kusa:
         return '\n'.join(replys) if replys else None
 
 
-    def admin(self, message):
+    async def admin(self, message):
         msg = message['raw_message'].strip().lower()
         group = str(message.get('group_id', ''))
         user = str(message.get('user_id', ''))
@@ -101,8 +102,16 @@ class Kusa:
             return None
         if msg.startswith('!'):
             msg = msg[1:]
+            reply = ''
             if msg == 'lssv':
-                return ', '.join([type(k).__name__ for k in self.kusa_modules])
+                reply = ', '.join([type(k).__name__ for k in self.kusa_modules])
+
+            if reply:
+                await self.api.send_group_msg(
+                    group_id=group,
+                    message=reply
+                )
+                return True
 
 
     def joker(self, message, replys):
