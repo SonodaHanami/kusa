@@ -109,7 +109,7 @@ class Setu:
             setudata[user] = [time + 1, now]
             dumpjson(setudata, SETU)
 
-            return f'{pid}\n{title}\n{author}\n[CQ:image,file={img_url},cache=1]'
+            return f'{pid}\n{title}\n{author}\n[CQ:image,file=file:///{file_path},cache=1]'
 
 
     def jobs(self):
