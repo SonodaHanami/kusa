@@ -24,10 +24,14 @@ class Setu:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
+        self.last = None
+
+
     async def execute_async(self, message):
         msg = message['raw_message']
         group = str(message.get("group_id", ''))
         user = str(message.get("user_id", 0))
+
         if msg == '戒色':
             jiesedata = loadjson(JIESE)
             jiesedata[group] = []
@@ -45,6 +49,7 @@ class Setu:
                 reply = f'好，已收集到{cnt}份签名，还需{JIESE_LIMIT - cnt}份可解除戒色'
             dumpjson(jiesedata, JIESE)
             return reply
+
         if msg[0:2] in ('色图', '涩图'):
             jiesedata = loadjson(JIESE)
             setudata = loadjson(SETU)
@@ -109,8 +114,13 @@ class Setu:
             setudata[user] = [time + 1, now]
             dumpjson(setudata, SETU)
 
-            return f'{pid}\n{title}\n{author}\n[CQ:image,file=file:///{file_path},cache=1]'
+            self.last = f'{pid}\n{title}\n{author}\n[CQ:image,file=file:///{file_path},cache=1]'
+            return self.last
 
+        if msg == '重发':
+            if self.last:
+                return self.last
+            return '没有上一张图的记录'
 
     def jobs(self):
         trigger = CronTrigger(hour='5')
