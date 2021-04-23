@@ -24,7 +24,7 @@ class Setu:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
-        self.last = None
+        self.last = {}
 
 
     async def execute_async(self, message):
@@ -114,12 +114,12 @@ class Setu:
             setudata[user] = [time + 1, now]
             dumpjson(setudata, SETU)
 
-            self.last = f'{pid}\n{title}\n{author}\n[CQ:image,file=file:///{file_path},cache=1]'
-            return self.last
+            self.last[group] = f'{pid}\n{title}\n{author}\n[CQ:image,file=file:///{file_path},cache=1]'
+            return self.last[group]
 
         if msg == '重发':
-            if self.last:
-                return self.last
+            if self.last.get(group):
+                return self.last[group]
             return '没有上一张图的记录'
 
     def jobs(self):
