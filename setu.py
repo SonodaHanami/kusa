@@ -17,6 +17,7 @@ SOURCE_LOLICON_APP = 'https://api.lolicon.app/setu/'
 
 SETU = os.path.expanduser('~/.kusa/setu.json')
 JIESE = os.path.expanduser('~/.kusa/jiese.json')
+SETU_REPLY = '{pid}\n{title}\n{author}\n[CQ:image,file=file:///{path},cache=1]'
 MAX_TIME = 5
 JIESE_LIMIT = 3
 
@@ -113,14 +114,19 @@ class Setu:
 
             setudata[user] = [time + 1, now]
             dumpjson(setudata, SETU)
-
-            self.last[group] = f'{pid}\n{title}\n{author}\n[CQ:image,file=file:///{file_path},cache=1]'
-            return self.last[group]
+            self.last[group] = {
+                'pid': pid,
+                'title': title,
+                'author': author,
+                'path': file_path,
+            }
+            return SETU_REPLY.format_map(self.last[group])
 
         if msg == '重发':
             if self.last.get(group):
-                return self.last[group]
+                return SETU_REPLY.format_map(self.last[group])
             return '没有上一张图的记录'
+
 
     def jobs(self):
         trigger = CronTrigger(hour='5')
