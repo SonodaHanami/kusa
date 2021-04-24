@@ -5,6 +5,7 @@ import re
 import requests
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timedelta
+from PIL import Image
 from random import randint as ri
 from .utils import *
 
@@ -18,6 +19,7 @@ SOURCE_LOLICON_APP = 'https://api.lolicon.app/setu/'
 SETU = os.path.expanduser('~/.kusa/setu.json')
 JIESE = os.path.expanduser('~/.kusa/jiese.json')
 SETU_REPLY = '{pid}\n{title}\n{author}\n[CQ:image,file=file:///{path},cache=1]'
+TEMP_IMG = os.path.expanduser('~/.kusa/setu/temp{}.jpg')
 MAX_TIME = 5
 JIESE_LIMIT = 3
 
@@ -125,6 +127,17 @@ class Setu:
         if msg == '重发':
             if self.last.get(group):
                 return SETU_REPLY.format_map(self.last[group])
+            return '没有上一张图的记录'
+        if msg == '旋转重发':
+            if self.last.get(group):
+                try:
+                    img = Image.open(self.last[group]['path'])
+                    img = img.transpose(Image.ROTATE_180)
+                    img.save(TEMP_IMG.format(group))
+                    self.last[group]['path'] = TEMP_IMG.format(group)
+                    return SETU_REPLY.format_map(self.last[group])
+                except Exception as e:
+                    return f'旋转重发失败 {e}'
             return '没有上一张图的记录'
 
 
