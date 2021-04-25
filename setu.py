@@ -19,7 +19,7 @@ SOURCE_LOLICON_APP = 'https://api.lolicon.app/setu/'
 SETU = os.path.expanduser('~/.kusa/setu.json')
 JIESE = os.path.expanduser('~/.kusa/jiese.json')
 SETU_REPLY = '{pid}\n{title}\n{author}\n[CQ:image,file=file:///{path},cache=1]'
-TEMP_IMG = os.path.expanduser('~/.kusa/setu/temp{}.jpg')
+TEMP_IMG = os.path.expanduser('~/.kusa/setu/temp{}.png')
 MAX_TIME = 5
 JIESE_LIMIT = 3
 
