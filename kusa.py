@@ -20,6 +20,14 @@ PREVMSG = os.path.expanduser("~/.kusa/prevmsg.json")
 MAX_MESSAGE_NUM = 5
 MIN_TIME_TO_REPEAT = 2
 MAX_TIME_TO_REPEAT = 4
+PASS_CHAR = r'''
+1234567890
+abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+`~!@#$%^&*()-=_+\|[]{}'";:,./<>?
+，。、【】！？“”：；
+的地得了是哇哪嘛吗啊啦呀吧哦呢呐哈着过
+'''
 
 
 class Kusa:
@@ -144,6 +152,16 @@ class Kusa:
             replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
         if '有没有' in msg:
             replys.append('有' if ri(1, 2) == 1 else '没有')
+
+        if ri(1, 80) == 1 and len(msg) > 1 and '[CQ:' not in msg:
+            if ri(1, 2) == 1:
+                i = ri(0, len(msg) - 2)
+                if msg[i] not in PASS_CHAR and msg[i+1] not in PASS_CHAR:
+                    replys.append(f'我直接进行一个{msg[i]}的{msg[i+1]}')
+            else:
+                i = ri(1, len(msg) - 1)
+                if msg[i] not in PASS_CHAR and msg[i-1] not in PASS_CHAR:
+                    replys.append(f'我直接进行一个{msg[i]}的{msg[i-1]}')
 
         if ri(1, 100) == 1 and '[CQ:' not in msg:
             replys.append(random.choice([
