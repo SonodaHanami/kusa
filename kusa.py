@@ -24,7 +24,7 @@ PASS_CHAR = r'''
 1234567890
 abcdefghijklmnopqrstuvwxyz
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
-`~!@#$%^&*()-=_+\|[]{}'";:,./<>?
+ `~!@#$%^&*()-=_+\|[]{}'";:,./<>?
 ，。、【】！？“”：；
 的地得了是哇哪嘛吗啊啦呀吧哦呢呐哈着过
 '''
