@@ -5,10 +5,12 @@ import pygtrie
 import re
 import requests
 import sys
+import time
 from datetime import datetime, timedelta
 from apscheduler.triggers.cron import CronTrigger
 
 from . import whois
+from .DOTA2_dicts import *
 from .utils import *
 
 CONFIG = load_config()
@@ -20,6 +22,11 @@ IDK = '我不知道'
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 STEAM  = os.path.expanduser('~/.kusa/steam.json')
 
+PLAYER_SUMMARY = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={}&steamids={}'
+LAST_MATCH = 'https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v001/?key={}&account_id={}&matches_requested=1'
+OPENDOTA_REQUEST = 'https://api.opendota.com/api/request/{}'
+OPENDOTA_MATCHES = 'https://api.opendota.com/api/matches/{}'
+
 class Steam:
     Passive = False
     Active = True
@@ -27,6 +34,9 @@ class Steam:
 
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
+
+        self.dota2 = Dota2()
+
 
     async def execute_async(self, message):
         msg = message['raw_message'].strip()
@@ -66,6 +76,7 @@ class Steam:
             else:
                 return '没有找到你的绑定记录'
 
+
     def jobs(self):
         trigger = CronTrigger(minute='*', second='30')
         job = (trigger, self.send_news_async)
@@ -100,20 +111,19 @@ class Steam:
         replys = []
         status_changed = False
         sids = ','.join(str(p) for p in players.keys())
-        r = requests.get(f'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={APIKEY}&steamids={sids}')
-        j = json.loads(r.content)
+        j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
         for p in j['response']['players']:
             sid = int(p['steamid'])
-            for q in players[sid]:
+            for qq in players[sid]:
                 cur_game = p.get('gameextrainfo', '')
-                pre_game = steamdata[q]['gameextrainfo']
+                pre_game = steamdata[qq]['gameextrainfo']
                 pname    = p['personaname']
 
                 # 游戏状态更新
                 if cur_game != pre_game:
                     status_changed = True
                     now = int(datetime.now().timestamp())
-                    minutes = (now - steamdata[q]['last_change']) // 60
+                    minutes = (now - steamdata[qq]['last_change']) // 60
                     if cur_game:
                         if pre_game:
                             mt = f'{pname}玩了{minutes}分钟{pre_game}后，玩起了{cur_game}'
@@ -125,18 +135,46 @@ class Steam:
                             mt += '\n见鬼，这群人都不用上班的吗'
                         news.append({
                             'message': mt,
-                            'user'   : [q]
+                            'user'   : [qq]
                         })
                     else:
                         news.append({
                             'message': f'{pname}退出了{pre_game}，本次游戏时长{minutes}分钟',
-                            'user'   : [q]
+                            'user'   : [qq]
                         })
-                    steamdata[q]['gameextrainfo'] = cur_game
-                    steamdata[q]['last_change'] = now
+                    steamdata[qq]['gameextrainfo'] = cur_game
+                    steamdata[qq]['last_change'] = now
+
+                # DOTA2最近比赛更新
+                last_DOTA2_match_ID = self.dota2.get_last_match_id(sid)
+                if last_DOTA2_match_ID > steamdata[qq]['last_DOTA2_match_ID']:
+                    status_changed = True
+                    steamdata[qq]['last_DOTA2_match_ID'] = last_DOTA2_match_ID
+                    player = {
+                        'uid': qq,
+                        'nickname': pname,
+                        'steam_id3' : sid - 76561197960265728,
+                        'steam_id64' : sid,
+                        'last_DOTA2_match_ID': last_DOTA2_match_ID
+                    }
+                    if matches.get(last_DOTA2_match_ID, 0) != 0:
+                        matches[last_DOTA2_match_ID].append(player)
+                    else:
+                        matches.update({last_DOTA2_match_ID: [player]})
+
 
         if status_changed:
             dumpjson(steamdata, STEAM)
+
+        for match_id in matches:
+            m = self.dota2.generate_match_message(match_id=match_id, players=matches[match_id])
+            if isinstance(m, str):
+                news.append(
+                    {
+                        'message': m,
+                        'user'   : [matches[match_id][i]['uid'] for i in range(len(matches[match_id]))]
+                    }
+                )
 
         for msg in news:
             msg['target_groups'] = []
@@ -163,3 +201,147 @@ class Steam:
                         else:
                             players[sid].append(qq)
         return players
+
+
+class Dota2:
+    @staticmethod
+    def get_last_match_id(id64):
+        try:
+            match_id = requests.get(LAST_MATCH.format(APIKEY, id64)).json()["result"]["matches"][0]["match_id"]
+            return match_id
+        except Exception as e:
+            return 0
+
+    # 根据slot判断队伍, 返回1为天辉, 2为夜魇
+    @staticmethod
+    def get_team_by_slot(slot):
+        if slot < 100:
+            return 1
+        else:
+            return 2
+
+    def request_match(self, match_id):
+        try:
+            j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
+            print('{} 请求分析比赛编号{}'.format(datetime.now(), match_id))
+            job_id = j['job']['jobId']
+            while j:
+                time.sleep(2)
+                j = requests.get(OPENDOTA_REQUEST.format(job_id)).json()
+            print('{} 比赛编号{}分析完成'.format(datetime.now(), match_id))
+            return True
+        except Exception as e:
+            print(e)
+            return False
+
+    def generate_match_message(self, match_id, players):
+        if not self.request_match(match_id):
+            return None
+        match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
+
+        start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
+        duration = match['duration']
+
+        # 比赛模式
+        mode_id = match["game_mode"]
+        mode = GAME_MODE[mode_id] if mode_id in GAME_MODE else '未知'
+
+        lobby_id = match['lobby_type']
+        lobby = LOBBY[lobby_id] if lobby_id in LOBBY else '未知'
+        # 更新玩家对象的比赛信息
+        for i in players:
+            for j in match['players']:
+                if i['steam_id3'] == j['account_id']:
+                    i['dota2_kill'] = j['kills']
+                    i['dota2_death'] = j['deaths']
+                    i['dota2_assist'] = j['assists']
+                    i['kda'] = ((1. * i['dota2_kill'] + i['dota2_assist']) / i['dota2_death']) \
+                        if i['dota2_death'] != 0 else (1. * i['dota2_kill'] + i['dota2_assist'])
+                    i['dota2_team'] = self.get_team_by_slot(j['player_slot'])
+                    i['hero'] = j['hero_id']
+                    i['last_hit'] = j['last_hits']
+                    i['damage'] = j['hero_damage']
+                    i['gpm'] = j['gold_per_min']
+                    i['xpm'] = j['xp_per_min']
+                    i['damage_received'] = sum(j['damage_inflictor_received'].values())
+                    break
+
+        nicknames = '，'.join([players[i]['nickname'] for i in range(-len(players),-1)])
+        if nicknames:
+            nicknames += '和'
+        nicknames += players[-1]['nickname']
+
+        # 队伍信息
+        team = players[0]['dota2_team']
+        win = match['radiant_win'] == (team == 1)
+
+        if mode_id in (15, 19):  # 各种活动模式仅简略通报
+            return f'{nicknames}玩了一把[{mode}/{lobby}]，开始于{start_time}，' \
+                f'持续{duration/60:.0f}分{duration%60:.0f}秒，' \
+                f'看起来好像是{"赢" if win else "输"}了。'
+
+        team_damage = 0
+        team_damage_received = 0
+        team_kills = 0
+        team_deaths = 0
+        for i in match['players']:
+            if self.get_team_by_slot(i['player_slot']) == team:
+                team_damage += i['hero_damage']
+                team_damage_received += sum(i['damage_inflictor_received'].values())
+                team_kills += i['kills']
+                team_deaths += i['deaths']
+
+        top_kda = 0
+        for i in players:
+            if i['kda'] > top_kda:
+                top_kda = i['kda']
+
+        if (win and top_kda > 5) or (not win and top_kda > 3):
+            postive = True
+        elif (win and top_kda < 2) or (not win and top_kda < 1):
+            postive = False
+        else:
+            if random.randint(0, 1) == 0:
+                postive = True
+            else:
+                postive = False
+
+        tosend = []
+        if win and postive:
+            tosend.append(random.choice(WIN_POSTIVE).format(nicknames))
+        elif win and not postive:
+            tosend.append(random.choice(WIN_NEGATIVE).format(nicknames))
+        elif not win and postive:
+            tosend.append(random.choice(LOSE_POSTIVE).format(nicknames))
+        else:
+            tosend.append(random.choice(LOSE_NEGATIVE).format(nicknames))
+
+        tosend.append('开始时间: {}'.format(start_time))
+        tosend.append('持续时间: {:.0f}分{:.0f}秒'.format(duration / 60, duration % 60))
+        tosend.append('游戏模式: [{}/{}]'.format(mode, lobby))
+
+        for i in players:
+            nickname = i['nickname']
+            hero = random.choice(HEROES_LIST_CHINESE[i['hero']]) if i['hero'] in HEROES_LIST_CHINESE else '不知道什么鬼'
+            kda = i['kda']
+            last_hits = i['last_hit']
+            damage = i['damage']
+            damage_received = i['damage_received']
+            kills, deaths, assists = i['dota2_kill'], i['dota2_death'], i['dota2_assist']
+            gpm, xpm = i['gpm'], i['xpm']
+
+            damage_rate = 0 if team_damage == 0 else (100 * (float(damage) / team_damage))
+            damage_received_rate = 0 if team_damage_received == 0 else (100 * (float(damage_received) / team_damage_received))
+            participation = 0 if team_kills == 0 else (100 * float(kills + assists) / team_kills)
+            deaths_rate = 0 if team_deaths == 0 else (100 * float(deaths) / team_deaths)
+
+            tosend.append(
+                '{}使用{}, KDA: {:.2f}[{}/{}/{}], GPM/XPM: {}/{}, ' \
+                '补刀数: {}, 总伤害: {}({:.2f}%), 承受伤害: {}({:.2f}%), ' \
+                '参战率: {:.2f}%, 参葬率: {:.2f}%' \
+                .format(nickname, hero, kda, kills, deaths, assists, gpm, xpm, last_hits,
+                        damage, damage_rate, damage_received, damage_received_rate,
+                        participation, deaths_rate)
+            )
+
+        return '\n'.join(tosend)
