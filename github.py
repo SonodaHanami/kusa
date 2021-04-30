@@ -41,7 +41,7 @@ class Github:
 
         self.latest_commits = {}
 
-        self.get_commit_update()
+        self.get_all_commits_update()
 
 
     def jobs(self):
@@ -72,7 +72,7 @@ class Github:
                 first_sub = True
             dumpjson(githubdata, GITHUB)
             if first_sub:
-                self.get_commit_update()
+                self.get_commit_update(repo)
             return f'订阅{repo}成功'
 
         if re.match('取消订阅github', msg, re.I):
@@ -94,7 +94,7 @@ class Github:
 
 
     async def send_news_async(self):
-        news = self.get_commit_update()
+        news = self.get_all_commits_update()
         for n in news:
             await self.api.send_group_msg(
                 group_id=n['group'],
@@ -102,7 +102,7 @@ class Github:
             )
 
 
-    def get_commit_update(self):
+    def get_all_commits_update(self):
         news = []
         updates = []
         force_pushed = {}
@@ -110,34 +110,11 @@ class Github:
         githubdata = loadjson(GITHUB)
 
         for repo in githubdata:
-            print('{} 查询Github更新：{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), repo))
-            commits = self.get_repo_commits(repo)
-            if not commits:
-                continue
-            commit_count += len(commits)
-            last = self.latest_commits.get(repo)
-            self.latest_commits[repo] = commits[0]
-            if last is None:
-                print('Github订阅初始化：{}'.format(repo))
-                githubdata[repo]['commits'] = [c['hash'] for c in commits]
-                continue
-            if last in commits:
-                idx = commits.index(last)
-                commits = commits[:idx]
-                githubdata[repo]['commits'] = [c['hash'] for c in commits] + githubdata[repo]['commits']
-            else:
-                closest_commit = None
-                for commit in commits:
-                    if commit['hash'] in githubdata[repo]['commits']:
-                        closest_commit = commit
-                        break
-                old_index = githubdata[repo]['commits'].index(closest_commit['hash'])
-                new_index = commits.index(closest_commit)
-                commits = commits[:new_index]
-                githubdata[repo]['commits'] = [c['hash'] for c in commits] + githubdata[repo]['commits'][old_index:]
-                force_pushed[repo] = [old_index, new_index]
+            commits, force = self.get_commit_update(repo)
             updates += commits
-        dumpjson(githubdata, GITHUB)
+            commit_count += len(commits)
+            force_pushed.update(force)
+
         print('{} 共查询到{}个提交，其中有{}个更新'.format(
                 datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 commit_count,
@@ -165,6 +142,38 @@ class Github:
                     })
         news.reverse()
         return news
+
+
+    def get_commit_update(self, repo):
+        githubdata = loadjson(GITHUB)
+        force = {}
+        print('{} 查询Github更新：{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), repo))
+        commits = self.get_repo_commits(repo)
+        if not commits:
+            return [], force
+        last = self.latest_commits.get(repo)
+        self.latest_commits[repo] = commits[0]
+        if last is None:
+            print('Github订阅初始化：{}'.format(repo))
+            githubdata[repo]['commits'] = [c['hash'] for c in commits]
+            return [], force
+        if last in commits:
+            idx = commits.index(last)
+            commits = commits[:idx]
+            githubdata[repo]['commits'] = [c['hash'] for c in commits] + githubdata[repo]['commits']
+        else:
+            closest_commit = None
+            for commit in commits:
+                if commit['hash'] in githubdata[repo]['commits']:
+                    closest_commit = commit
+                    break
+            old_index = githubdata[repo]['commits'].index(closest_commit['hash'])
+            new_index = commits.index(closest_commit)
+            commits = commits[:new_index]
+            githubdata[repo]['commits'] = [c['hash'] for c in commits] + githubdata[repo]['commits'][old_index:]
+            force[repo] = [old_index, new_index]
+        dumpjson(githubdata, GITHUB)
+        return commits, force
 
 
     def get_repo_commits(self, repo):
