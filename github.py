@@ -39,8 +39,6 @@ class Github:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
-        self.latest_commits = {}
-
         self.get_all_commits_update()
 
 
@@ -151,8 +149,7 @@ class Github:
         commits = self.get_repo_commits(repo)
         if not commits:
             return [], force
-        last = self.latest_commits.get(repo)
-        self.latest_commits[repo] = commits[0]
+        last = githubdata[repo]['commits'][0] if githubdata[repo].get('commits') else None
         if last is None:
             print('Github订阅初始化：{}'.format(repo))
             githubdata[repo]['commits'] = [c['hash'] for c in commits]
