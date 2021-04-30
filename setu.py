@@ -130,10 +130,13 @@ class Setu:
             return '没有上一张图的记录'
         if msg == '旋转重发':
             if self.last.get(group):
+                if self.last[group].get('rorated'):
+                    return '已经转过叻'
                 try:
                     img = Image.open(self.last[group]['path'])
                     img = img.transpose(Image.ROTATE_180)
                     img.save(TEMP_IMG.format(group))
+                    self.last[group]['rorated'] = True
                     self.last[group]['path'] = TEMP_IMG.format(group)
                     return SETU_REPLY.format_map(self.last[group])
                 except Exception as e:
