@@ -108,9 +108,9 @@ class Github:
         githubdata = loadjson(GITHUB)
 
         for repo in githubdata:
-            commits, force = self.get_commit_update(repo)
+            count, commits, force = self.get_commit_update(repo)
             updates += commits
-            commit_count += len(commits)
+            commit_count += count
             force_pushed.update(force)
 
         print('{} 共查询到{}个提交，其中有{}个更新'.format(
@@ -147,30 +147,32 @@ class Github:
         force = {}
         print('{} 查询Github更新：{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), repo))
         commits = self.get_repo_commits(repo)
+        count = len(commits)
         if not commits:
-            return [], force
+            return count, [], force
         last = githubdata[repo]['commits'][0] if githubdata[repo].get('commits') else None
+        hashes = [c['hash'] for c in commits]
         if last is None:
             print('Github订阅初始化：{}'.format(repo))
-            githubdata[repo]['commits'] = [c['hash'] for c in commits]
-            return [], force
-        if last in commits:
-            idx = commits.index(last)
+            githubdata[repo]['commits'] = hashes
+            return count, [], force
+        if last in hashes:
+            idx = hashes.index(last)
             commits = commits[:idx]
-            githubdata[repo]['commits'] = [c['hash'] for c in commits] + githubdata[repo]['commits']
+            githubdata[repo]['commits'] = hashes[:idx] + githubdata[repo]['commits']
         else:
             closest_commit = None
-            for commit in commits:
-                if commit['hash'] in githubdata[repo]['commits']:
+            for commit in hashes:
+                if commit in githubdata[repo]['commits']:
                     closest_commit = commit
                     break
-            old_index = githubdata[repo]['commits'].index(closest_commit['hash'])
-            new_index = commits.index(closest_commit)
+            old_index = githubdata[repo]['commits'].index(closest_commit)
+            new_index = hashes.index(closest_commit)
             commits = commits[:new_index]
-            githubdata[repo]['commits'] = [c['hash'] for c in commits] + githubdata[repo]['commits'][old_index:]
+            githubdata[repo]['commits'] = hashes[:new_index] + githubdata[repo]['commits'][old_index:]
             force[repo] = [old_index, new_index]
         dumpjson(githubdata, GITHUB)
-        return commits, force
+        return count, commits, force
 
 
     def get_repo_commits(self, repo):
