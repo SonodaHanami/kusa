@@ -24,6 +24,7 @@ STEAM  = os.path.expanduser('~/.kusa/steam.json')
 
 PLAYER_SUMMARY = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={}&steamids={}'
 LAST_MATCH = 'https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v001/?key={}&account_id={}&matches_requested=1'
+MATCH_DETAILS = 'https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?key={}&match_id={}'
 OPENDOTA_REQUEST = 'https://api.opendota.com/api/request/{}'
 OPENDOTA_MATCHES = 'https://api.opendota.com/api/matches/{}'
 
@@ -162,19 +163,16 @@ class Steam:
                     else:
                         matches.update({last_DOTA2_match_ID: [player]})
 
+        for match_id in matches:
+            steamdata['DOTA2_matches_pool'][match_id] = {
+                'end_time': -1,
+                'players': matches[match_id]
+            }
 
         if status_changed:
             dumpjson(steamdata, STEAM)
 
-        for match_id in matches:
-            m = self.dota2.generate_match_message(match_id=match_id, players=matches[match_id])
-            if isinstance(m, str):
-                news.append(
-                    {
-                        'message': m,
-                        'user'   : [matches[match_id][i]['uid'] for i in range(len(matches[match_id]))]
-                    }
-                )
+        news += self.dota2.get_matches_report()
 
         for msg in news:
             msg['target_groups'] = []
@@ -220,25 +218,40 @@ class Dota2:
         else:
             return 2
 
+    def get_match_end_time(self, match_id):
+        try:
+            j = requests.get(MATCH_DETAILS.format(APIKEY, match_id)).json()['result']
+            return j['start_time'] + j['duration']
+        except Exception as e:
+            print(e)
+            return -1
+
     def request_match(self, match_id):
         try:
             j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
-            print('{} 请求分析比赛编号{}'.format(datetime.now(), match_id))
+            print('{} 比赛编号{} 开始请求分析'.format(datetime.now(), match_id))
             job_id = j['job']['jobId']
             while j:
                 time.sleep(2)
                 j = requests.get(OPENDOTA_REQUEST.format(job_id)).json()
-            print('{} 比赛编号{}分析完成'.format(datetime.now(), match_id))
+            print('{} 比赛编号{} 分析完成'.format(datetime.now(), match_id))
             return True
         except Exception as e:
             print(e)
             return False
 
-    def generate_match_message(self, match_id, players):
+    def get_match(self, match_id):
         if not self.request_match(match_id):
-            return None
+            return {}
         match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
+        if match['players'][0]['damage_inflictor_received'] is None:
+            return {}
+        return match
 
+    def generate_match_message(self, match_id, players):
+        match = self.get_match(match_id)
+        if not match:
+            return None
         start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
         duration = match['duration']
 
@@ -345,3 +358,32 @@ class Dota2:
             )
 
         return '\n'.join(tosend)
+
+    def get_matches_report(self):
+        steamdata = loadjson(STEAM)
+        reports = []
+        todelete = []
+        for match_id in steamdata['DOTA2_matches_pool'].keys():
+            steamdata['DOTA2_matches_pool'][match_id]['end_time'] = self.get_match_end_time(match_id)
+            now = int(datetime.now().timestamp())
+            if steamdata['DOTA2_matches_pool'][match_id]['end_time'] <= now - 86400 * 7:
+                todelete.append(match_id)
+                continue
+            if steamdata['DOTA2_matches_pool'][match_id]['end_time'] >= now + 300:
+                continue
+            m = self.generate_match_message(
+                match_id=match_id,
+                players=steamdata['DOTA2_matches_pool'][match_id]['players']
+            )
+            if isinstance(m, str):
+                reports.append(
+                    {
+                        'message': m,
+                        'user'   : [p['uid'] for p in steamdata['DOTA2_matches_pool'][match_id]['players']]
+                    }
+                )
+                todelete.append(match_id)
+        for match_id in todelete:
+            del steamdata['DOTA2_matches_pool'][match_id]
+        dumpjson(steamdata, STEAM)
+        return reports
