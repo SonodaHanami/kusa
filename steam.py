@@ -374,7 +374,7 @@ class Dota2:
             if steamdata['DOTA2_matches_pool'][match_id]['end_time'] <= now - 86400 * 7:
                 todelete.append(match_id)
                 continue
-            if steamdata['DOTA2_matches_pool'][match_id]['end_time'] >= now + 300:
+            if steamdata['DOTA2_matches_pool'][match_id]['end_time'] >= now - 600:
                 continue
             m = self.generate_match_message(
                 match_id=match_id,
