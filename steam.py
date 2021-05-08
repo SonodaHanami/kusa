@@ -21,6 +21,7 @@ UNKNOWN = None
 IDK = '我不知道'
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 STEAM  = os.path.expanduser('~/.kusa/steam.json')
+DOTA2_MATCH = os.path.expanduser('~/.kusa/DOTA2_match/{}.json')
 
 PLAYER_SUMMARY = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={}&steamids={}'
 LAST_MATCH = 'https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v001/?key={}&account_id={}&matches_requested=1'
@@ -241,11 +242,15 @@ class Dota2:
             return False
 
     def get_match(self, match_id):
+        if os.path.exists(DOTA2_MATCH.format(match_id)):
+            print('{} 比赛编号{} 读取本地保存的分析结果'.format(datetime.now(), match_id))
+            return loadjson(DOTA2_MATCH.format(match_id))
         if not self.request_match(match_id):
             return {}
         match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
         if match['players'][0]['damage_inflictor_received'] is None:
             return {}
+        dumpjson(match, DOTA2_MATCH.format(match_id))
         return match
 
     def generate_match_message(self, match_id, players):
