@@ -17,7 +17,6 @@ APIKEY = CONFIG['SETU_APIKEY']
 SOURCE_LOLICON_APP = 'https://api.lolicon.app/setu/'
 
 SETU = os.path.expanduser('~/.kusa/setu.json')
-JIESE = os.path.expanduser('~/.kusa/jiese.json')
 SETU_REPLY = '{pid}\n{title}\n{author}\n[CQ:image,file=file:///{path},cache=1]'
 TEMP_IMG = os.path.expanduser('~/.kusa/setu/temp{}.png')
 MAX_TIME = 5
@@ -36,32 +35,31 @@ class Setu:
         user = str(message.get("user_id", 0))
 
         if msg == '戒色':
-            jiesedata = loadjson(JIESE)
-            jiesedata[group] = []
-            dumpjson(jiesedata, JIESE)
+            setudata = loadjson(SETU)
+            setudata['jiese'][group] = []
+            dumpjson(setudata, SETU)
             return f'好，本群已戒色，累计{JIESE_LIMIT}人发送“我要色图”可解除戒色'
         if msg == '我要色图':
-            jiesedata = loadjson(JIESE)
-            if not jiesedata.get(group):
+            setudata = loadjson(SETU)
+            if setudata['jiese'].get(group) is None:
                 return '那就看'
-            jiesedata[group].append(user)
-            jiesedata[group] = list(set(jiesedata[group]))
-            cnt = len(jiesedata[group])
+            setudata['jiese'][group].append(user)
+            setudata['jiese'][group] = list(set(setudata['jiese'][group]))
+            cnt = len(setudata['jiese'][group])
             if cnt >= JIESE_LIMIT:
-                del jiesedata[group]
+                del setudata['jiese'][group]
                 reply = f'好，已收集到{cnt}份签名，本群已解除戒色'
             else:
                 reply = f'好，已收集到{cnt}份签名，还需{JIESE_LIMIT - cnt}份可解除戒色'
-            dumpjson(jiesedata, JIESE)
+            dumpjson(setudata, SETU)
             return reply
 
         if msg[0:2] in ('色图', '涩图'):
-            jiesedata = loadjson(JIESE)
             setudata = loadjson(SETU)
             time = setudata.get(user, [0, 0])[0]
             prev = setudata.get(user, [0, 0])[1]
 
-            cnt = len(jiesedata.get(group, [0, 0, 0]))
+            cnt = len(setudata['jiese'].get(group, [0, 0, 0]))
             if cnt < JIESE_LIMIT:
                 return f'[CQ:at,qq={user}] 本群已戒色，累计{JIESE_LIMIT}人发送“我要色图”可解除戒色（{cnt}/{JIESE_LIMIT}）'
 
@@ -152,7 +150,10 @@ class Setu:
         return (job,)
 
     async def reset_setudata(self):
+        setudata = loadjson(SETU)
+        jiesedata = setudata['jiese']
         default_data = {
+            jiese: jiesedata,
             ADMIN: [-999, 0]
         }
         dumpjson(default_data, SETU)
