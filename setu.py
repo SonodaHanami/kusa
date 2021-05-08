@@ -42,6 +42,8 @@ class Setu:
             return f'好，本群已戒色，累计{JIESE_LIMIT}人发送“我要色图”可解除戒色'
         if msg == '我要色图':
             jiesedata = loadjson(JIESE)
+            if not jiesedata.get(group):
+                return '那就看'
             jiesedata[group].append(user)
             jiesedata[group] = list(set(jiesedata[group]))
             cnt = len(jiesedata[group])
