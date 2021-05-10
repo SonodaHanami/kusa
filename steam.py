@@ -51,6 +51,24 @@ class Steam:
             msg = msg[len(ATBOT):].strip()
             atbot = True
 
+        if msg.lower() == '订阅steam':
+            steamdata = loadjson(STEAM)
+            if group in steamdata['subscribe_groups']:
+                return '本群已订阅Steam'
+            else:
+                steamdata['subscribe_groups'].append(group)
+                dumpjson(steamdata, STEAM)
+                return '订阅Steam成功'
+
+        if msg.lower() == '取消订阅steam':
+            steamdata = loadjson(STEAM)
+            if group in steamdata['subscribe_groups']:
+                steamdata['subscribe_groups'].remove(group)
+                dumpjson(steamdata, STEAM)
+                return '取消订阅Steam成功'
+            else:
+                return '本群未订阅Steam'
+
         prm = re.match('绑定steam (\d+)', msg, re.I)
         if prm:
             try:
