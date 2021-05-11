@@ -153,7 +153,7 @@ class Setu:
         setudata = loadjson(SETU)
         jiesedata = setudata['jiese']
         default_data = {
-            jiese: jiesedata,
+            'jiese': jiesedata,
             ADMIN: [-999, 0]
         }
         dumpjson(default_data, SETU)
