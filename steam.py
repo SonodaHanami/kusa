@@ -486,7 +486,7 @@ class Dota2:
                 image.paste(hero_head, (20, 60 + slot * 30 + idx * 50))
                 draw.text(
                     (120, 60 + slot * 30 + idx * 50),
-                    p.get('personaname', '匿名'),
+                    p.get('personaname') if p.get('personaname') else '匿名',
                     font=font,
                     fill=(0, 0, 0)
                 )
