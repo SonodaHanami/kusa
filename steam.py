@@ -71,10 +71,13 @@ class Steam:
             else:
                 return '本群未订阅Steam'
 
-        prm = re.match('绑定steam (\d+)', msg, re.I)
+        prm = re.match('(怎么)?绑定steam(.*)', msg, re.I)
         if prm:
+            usage = '使用方法：\n绑定Steam Steam好友代码（9位）（也可能是8位或10位）'
             try:
-                id3 = int(prm[1])
+                if prm[1]:
+                    return usage
+                id3 = int(prm[2])
                 id64 = id3 + 76561197960265728
                 steamdata = loadjson(STEAM)
                 steamdata[user] = {
@@ -87,7 +90,7 @@ class Steam:
                 dumpjson(steamdata, STEAM)
                 return '绑定成功'
             except:
-                return '使用方法：\n绑定Steam Steam好友代码（9位）（也可能是8位或10位）'
+                return usage
 
         if msg.lower() == '解除绑定steam':
             steamdata = loadjson(STEAM)
