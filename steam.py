@@ -8,6 +8,7 @@ import sys
 import time
 from datetime import datetime, timedelta
 from apscheduler.triggers.cron import CronTrigger
+from PIL import Image, ImageDraw, ImageFont
 
 from . import whois
 from .DOTA2_dicts import *
@@ -271,6 +272,7 @@ class Dota2:
         dumpjson(match, DOTA2_MATCH.format(match_id))
         return match
 
+
     def generate_match_message(self, match_id, players):
         match = self.get_match(match_id)
         if not match:
@@ -382,6 +384,73 @@ class Dota2:
 
         return '\n'.join(tosend)
 
+    def generate_match_image(self, match_id):
+        match = self.get_match(match_id)
+        image = Image.new('RGB', (800, 600), (255, 255, 255))
+        font = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 12)
+        font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 16)
+        draw = ImageDraw.Draw(image)
+        # draw.text((40, 100), '好耶', font=font, fill=(0, 0, 0))
+        title = '比赛' + str(match['match_id'])
+        title_size = font.getsize(title)
+        draw.rectangle((0, 0, 800, 30), 'black')
+        draw.text(((800 - title_size[0]) / 2, 5), title, font=font2, fill=(255, 255, 255))
+        SLOT = ['天辉', '夜魇']
+        item_slots = ['item_0', 'item_1', 'item_2', 'item_3', 'item_4', 'item_5', 'item_neutral']
+        for slot in range(0, 2):
+            draw.text(
+                    (20, 30 + slot * 280),
+                    SLOT[slot],
+                    font=font,
+                    fill=(192, 0, 0)
+                )
+            for i in range(0, 5):
+                idx = slot * 5 + i
+                p = match['players'][idx]
+                hero_head = Image.open('{}/{}_full.png'.format(os.path.expanduser('~/.kusa/images'), HEROES[p['hero_id']]))
+                hero_head = hero_head.resize((80, 45), Image.ANTIALIAS)
+                image.paste(hero_head, (20, 60 + slot * 30 + idx * 50))
+                draw.text(
+                    (120, 60 + slot * 30 + idx * 50),
+                    p.get('personaname', '匿名'),
+                    font=font,
+                    fill=(0, 0, 0)
+                )
+                kda = '{}/{}/{}\nKDA:{:.2f}'.format(
+                    p['kills'], p['deaths'], p['assists'],
+                    (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths']
+                )
+                draw.text(
+                    (300, 60 + slot * 30 + idx * 50),
+                    kda,
+                    font=font,
+                    fill=(0, 0, 0)
+                )
+
+                if 'ultimate_scepter' in p['item_usage']:
+                    scepter_img = Image.open('{}/scepter_1.png'.format(os.path.expanduser('~/.kusa/images')))
+                else:
+                    scepter_img = Image.open('{}/scepter_0.png'.format(os.path.expanduser('~/.kusa/images')))
+                scepter_img = scepter_img.resize((20, 20), Image.ANTIALIAS)
+                image.paste(scepter_img, (420 , 60 + slot * 30 + idx * 50))
+                if 'aghanims_shard' in p['item_usage']:
+                    shard_img = Image.open('{}/shard_1.png'.format(os.path.expanduser('~/.kusa/images')))
+                else:
+                    shard_img = Image.open('{}/shard_0.png'.format(os.path.expanduser('~/.kusa/images')))
+                shard_img = shard_img.resize((20, 10), Image.ANTIALIAS)
+                image.paste(shard_img, (420 , 80 + slot * 30 + idx * 50))
+
+                for item in item_slots:
+                    if p[item] == 0:
+                        continue
+                    item_img = Image.open('{}/{}_lg.png'.format(os.path.expanduser('~/.kusa/images'), ITEMS[p[item]]))
+                    item_img = item_img.resize((42, 31), Image.ANTIALIAS)
+                    if item == 'item_neutral':
+                        image.paste(item_img,(470 + 42 * item_slots.index(item), 60 + slot * 30 + idx * 50))
+                    else:
+                        image.paste(item_img,(450 + 42 * item_slots.index(item), 60 + slot * 30 + idx * 50))
+        image.save(os.path.expanduser(f'~/.kusa/DOTA2_match/{match_id}.png'), 'png')
+
     def get_matches_report(self):
         steamdata = loadjson(STEAM)
         reports = []
@@ -399,6 +468,8 @@ class Dota2:
                 players=steamdata['DOTA2_matches_pool'][match_id]['players']
             )
             if isinstance(m, str):
+                self.generate_match_image(match_id=match_id)
+                m += '\n[CQ:image,file=file:///{}]'.format(os.path.expanduser(f'~/.kusa/DOTA2_match/{match_id}.png'))
                 reports.append(
                     {
                         'message': m,
