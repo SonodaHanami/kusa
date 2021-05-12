@@ -358,7 +358,7 @@ class Dota2:
 
         for i in players:
             nickname = i['nickname']
-            hero = random.choice(HEROES_LIST_CHINESE[i['hero']]) if i['hero'] in HEROES_LIST_CHINESE else '不知道什么鬼'
+            hero = random.choice(HEROES_CHINESE[i['hero']]) if i['hero'] in HEROES_CHINESE else '不知道什么鬼'
             kda = i['kda']
             last_hits = i['last_hit']
             damage = i['damage']
