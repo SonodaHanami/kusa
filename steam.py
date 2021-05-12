@@ -97,6 +97,51 @@ class Steam:
             else:
                 return '没有找到你的绑定记录'
 
+        prm = re.match('(.*)在(干|做|搞|整)(嘛|啥|哈|什么)', msg)
+        if prm:
+            name = prm[1]
+            if not name:
+                return None
+            steamdata = loadjson(STEAM)
+            memberdata = loadjson(MEMBER)
+            if re.search('群友', name):
+                is_solo = False
+                players = self.get_players()
+                players2 = []
+                for p in players.keys():
+                    for q in players[p]:
+                        if q in memberdata[group]:
+                            players2.append(p)
+                players2 = list(set(players2))
+                sids = ','.join(str(p) for p in players2)
+            else:
+                is_solo = True
+                wi = whois.Whois()
+                obj = wi.object_explainer(group, user, name)
+                steam_info = steamdata.get(obj['uid'])
+                if steam_info:
+                    sids = steam_info.get('steam_id_long')
+                    if not sids:
+                        return IDK
+                else: # steam_info is None
+                    # if obj['uid'] not in data[group]:
+                    if obj['uid'] == UNKNOWN:
+                        return f'我们群里有{name}吗？'
+                    return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
+            j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
+            replys = []
+            for p in j['response']['players']:
+                if p.get('gameextrainfo'):
+                    replys.append(p['personaname'] + '正在玩' + p['gameextrainfo'])
+                elif is_solo:
+                    replys.append(p['personaname'] + '没在玩游戏')
+            if replys:
+                if len(replys) > 2:
+                    replys.append('大家都有光明的未来！')
+                return '\n'.join(replys)
+            elif not is_solo:
+                return '群友都没在玩游戏'
+            return IDK
 
     def jobs(self):
         trigger = CronTrigger(minute='*', second='30')
