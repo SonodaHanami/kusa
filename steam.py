@@ -29,6 +29,7 @@ LAST_MATCH = 'https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v001/
 MATCH_DETAILS = 'https://api.steampowered.com/IDOTA2Match_570/GetMatchDetails/V001/?key={}&match_id={}'
 OPENDOTA_REQUEST = 'https://api.opendota.com/api/request/{}'
 OPENDOTA_MATCHES = 'https://api.opendota.com/api/matches/{}'
+OPENDOTA_PLAYERS = 'https://api.opendota.com/api/players/{}'
 
 class Steam:
     Passive = False
@@ -96,6 +97,31 @@ class Steam:
                 return '解除绑定成功'
             else:
                 return '没有找到你的绑定记录'
+
+        prm = re.match('查询(.+)的天梯段位$', msg)
+        if prm:
+            name = prm[1].strip()
+            steamdata = loadjson(STEAM)
+            wi = whois.Whois()
+            obj = wi.object_explainer(group, user, name)
+            steam_info = steamdata.get(obj['uid'])
+            if steam_info:
+                sid = steam_info.get('steam_id_short')
+                if not sid:
+                    return IDK
+            else: # steam_info is None
+                if obj['uid'] == UNKNOWN:
+                    return f'我们群里有{name}吗？'
+                return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
+            j = requests.get(OPENDOTA_PLAYERS.format(sid)).json()
+            if j.get('rank_tier'):
+                return '{}现在是{}{}'.format(
+                    j['profile']['personaname'],
+                    PLAYER_RANK[j['rank_tier'] // 10],
+                    j['rank_tier'] % 10
+                )
+            else:
+                return '查不到哟'
 
         prm = re.match('(.*)在(干|做|搞|整)(嘛|啥|哈|什么)', msg)
         if prm:
@@ -482,7 +508,7 @@ class Dota2:
                     shard_img = Image.open('{}/shard_1.png'.format(os.path.expanduser('~/.kusa/images')))
                 else:
                     shard_img = Image.open('{}/shard_0.png'.format(os.path.expanduser('~/.kusa/images')))
-                shard_img = shard_img.resize((20, 10), Image.ANTIALIAS)
+                shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
                 image.paste(shard_img, (420 , 80 + slot * 30 + idx * 50))
 
                 for item in item_slots:
