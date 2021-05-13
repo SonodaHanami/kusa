@@ -22,7 +22,8 @@ UNKNOWN = None
 IDK = '我不知道'
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 STEAM  = os.path.expanduser('~/.kusa/steam.json')
-DOTA2_MATCH = os.path.expanduser('~/.kusa/DOTA2_match/{}.json')
+IMAGES = os.path.expanduser('~/.kusa/images/')
+DOTA2_MATCHES = os.path.expanduser('~/.kusa/DOTA2_matches/')
 
 PLAYER_SUMMARY = 'http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={}&steamids={}'
 LAST_MATCH = 'https://api.steampowered.com/IDOTA2Match_570/GetMatchHistory/v001/?key={}&account_id={}&matches_requested=1'
@@ -335,15 +336,16 @@ class Dota2:
             return False
 
     def get_match(self, match_id):
-        if os.path.exists(DOTA2_MATCH.format(match_id)):
+        MATCH = os.path.join(DOTA2_MATCHES, f'{match_id}.json')
+        if os.path.exists(MATCH):
             print('{} 比赛编号{} 读取本地保存的分析结果'.format(datetime.now(), match_id))
-            return loadjson(DOTA2_MATCH.format(match_id))
+            return loadjson(MATCH)
         if not self.request_match(match_id):
             return {}
         match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
         if match['players'][0]['damage_inflictor_received'] is None:
             return {}
-        dumpjson(match, DOTA2_MATCH.format(match_id))
+        dumpjson(match, MATCH)
         return match
 
 
@@ -460,32 +462,49 @@ class Dota2:
 
     def generate_match_image(self, match_id):
         match = self.get_match(match_id)
-        image = Image.new('RGB', (800, 600), (255, 255, 255))
+        image = Image.new('RGB', (800, 800), (255, 255, 255))
         font = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 12)
-        font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 16)
+        font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 18)
         draw = ImageDraw.Draw(image)
-        # draw.text((40, 100), '好耶', font=font, fill=(0, 0, 0))
-        title = '比赛' + str(match['match_id'])
-        title_size = font.getsize(title)
-        draw.rectangle((0, 0, 800, 30), 'black')
-        draw.text(((800 - title_size[0]) / 2, 5), title, font=font2, fill=(255, 255, 255))
-        SLOT = ['天辉', '夜魇']
-        item_slots = ['item_0', 'item_1', 'item_2', 'item_3', 'item_4', 'item_5', 'item_neutral']
+        draw.rectangle((0, 0, 800, 100), 'black')
+        title = '比赛 ' + str(match['match_id'])
+        title_size = font2.getsize(title)
+        draw.text(((800 - title_size[0]) / 2, 10), title, font=font2, fill=(255, 255, 255))
+        # 手动加粗
+        draw.text((20, 50), '开始时间', font=font, fill=(255, 255, 255))
+        draw.text((21, 50), '开始时间', font=font, fill=(255, 255, 255))
+        draw.text((220, 50), '持续时间', font=font, fill=(255, 255, 255))
+        draw.text((221, 50), '持续时间', font=font, fill=(255, 255, 255))
+        draw.text((420, 50), 'Level', font=font, fill=(255, 255, 255))
+        draw.text((421, 50), 'Level', font=font, fill=(255, 255, 255))
+        draw.text((620, 50), '比赛模式', font=font, fill=(255, 255, 255))
+        draw.text((621, 50), '比赛模式', font=font, fill=(255, 255, 255))
+        start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
+        duration = '{}分{}秒'.format(match['duration'] // 60, match['duration'] % 60)
+        level = SKILL_LEVEL[match['skill']] if match.get('skill') else 'Unknown'
+        mode_id = match["game_mode"]
+        mode = GAME_MODE[mode_id] if mode_id in GAME_MODE else '未知'
+        lobby_id = match['lobby_type']
+        lobby = LOBBY[lobby_id] if lobby_id in LOBBY else '未知'
+        draw.text((20, 70), start_time, font=font, fill=(255, 255, 255))
+        draw.text((220, 70), duration, font=font, fill=(255, 255, 255))
+        draw.text((420, 70), level, font=font, fill=(255, 255, 255))
+        draw.text((620, 70), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
         for slot in range(0, 2):
             draw.text(
-                    (20, 30 + slot * 280),
-                    SLOT[slot],
+                    (20, 120 + slot * 300),
+                    SLOT_CHINESE[slot],
                     font=font,
                     fill=(192, 0, 0)
                 )
             for i in range(0, 5):
                 idx = slot * 5 + i
                 p = match['players'][idx]
-                hero_head = Image.open('{}/{}_full.png'.format(os.path.expanduser('~/.kusa/images'), HEROES[p['hero_id']]))
+                hero_head = Image.open('{}/{}_full.png'.format(IMAGES, HEROES[p['hero_id']]))
                 hero_head = hero_head.resize((80, 45), Image.ANTIALIAS)
-                image.paste(hero_head, (20, 60 + slot * 30 + idx * 50))
+                image.paste(hero_head, (20, 150 + slot * 50 + idx * 50))
                 draw.text(
-                    (120, 60 + slot * 30 + idx * 50),
+                    (120, 150 + slot * 50 + idx * 50),
                     p.get('personaname') if p.get('personaname') else '匿名',
                     font=font,
                     fill=(0, 0, 0)
@@ -495,41 +514,35 @@ class Dota2:
                     (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths']
                 )
                 draw.text(
-                    (300, 60 + slot * 30 + idx * 50),
+                    (300, 150 + slot * 50 + idx * 50),
                     kda,
                     font=font,
                     fill=(0, 0, 0)
                 )
 
-                if 'ultimate_scepter' in p['item_usage']:
-                    scepter_img = Image.open('{}/scepter_1.png'.format(os.path.expanduser('~/.kusa/images')))
-                else:
-                    scepter_img = Image.open('{}/scepter_0.png'.format(os.path.expanduser('~/.kusa/images')))
+                s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
+                scepter_img = Image.open(os.path.join(IMAGES, f'scepter_{s}.png'))
                 scepter_img = scepter_img.resize((20, 20), Image.ANTIALIAS)
-                image.paste(scepter_img, (420 , 60 + slot * 30 + idx * 50))
-                if 'aghanims_shard' in p['item_usage']:
-                    shard_img = Image.open('{}/shard_1.png'.format(os.path.expanduser('~/.kusa/images')))
-                else:
-                    shard_img = Image.open('{}/shard_0.png'.format(os.path.expanduser('~/.kusa/images')))
+                image.paste(scepter_img, (420 , 150 + slot * 50 + idx * 50))
+                s = 1 if 'aghanims_shard' in p['item_usage'] else 0
+                shard_img = Image.open(os.path.join(IMAGES, f'shard_{s}.png'))
                 shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
-                image.paste(shard_img, (420 , 80 + slot * 30 + idx * 50))
+                image.paste(shard_img, (420 , 170 + slot * 50 + idx * 50))
 
-                for item in item_slots:
+                for item in ITEM_SLOTS:
                     if p[item] == 0:
                         continue
-                    item_img = Image.open('{}/{}_lg.png'.format(os.path.expanduser('~/.kusa/images'), ITEMS[p[item]]))
+                    item_img = Image.open('{}/{}_lg.png'.format(IMAGES, ITEMS[p[item]]))
                     item_img = item_img.resize((42, 31), Image.ANTIALIAS)
-                    if item == 'item_neutral':
-                        image.paste(item_img,(470 + 42 * item_slots.index(item), 60 + slot * 30 + idx * 50))
-                    else:
-                        image.paste(item_img,(450 + 42 * item_slots.index(item), 60 + slot * 30 + idx * 50))
+                    item_neutral_offset = 20 if item == 'item_neutral' else 0
+                    image.paste(item_img,(470 + item_neutral_offset + 42 * ITEM_SLOTS.index(item), 150 + slot * 50 + idx * 50))
         draw.text(
-            (10, 583),
+            (10, 780),
             '※录像分析数据来自opendota.com，DOTA2游戏图片素材版权归Value所有',
             font=font,
             fill=(128, 128, 128)
         )
-        image.save(os.path.expanduser(f'~/.kusa/DOTA2_match/{match_id}.png'), 'png')
+        image.save(os.path.join(DOTA2_MATCHES, f'{match_id}.png'), 'png')
 
     def get_matches_report(self):
         steamdata = loadjson(STEAM)
@@ -549,7 +562,7 @@ class Dota2:
             )
             if isinstance(m, str):
                 self.generate_match_image(match_id=match_id)
-                m += '\n[CQ:image,file=file:///{}]'.format(os.path.expanduser(f'~/.kusa/DOTA2_match/{match_id}.png'))
+                m += '\n[CQ:image,file=file:///{}]'.format(os.path.join(DOTA2_MATCHES, f'{match_id}.png'))
                 reports.append(
                     {
                         'message': m,

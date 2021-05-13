@@ -781,6 +781,11 @@ ITEMS = {
     1565: "recipe_gungir"
 }
 
+ITEM_SLOTS = ['item_0', 'item_1', 'item_2', 'item_3', 'item_4', 'item_5', 'item_neutral']
+
+SLOT = ['Radiant', 'Dire']
+SLOT_CHINESE = ['天辉', '夜魇']
+
 PLAYER_RANK = {
     1: '先锋',
     2: '卫士',
@@ -791,3 +796,5 @@ PLAYER_RANK = {
     7: '超凡入圣',
     8: '冠绝一世',
 }
+
+SKILL_LEVEL = {1: 'Normal', 2: 'High', 3: 'Very High'}
