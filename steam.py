@@ -470,8 +470,9 @@ class Dota2:
         draw.rectangle((0, 0, 800, 100), 'black')
         title = '比赛 ' + str(match['match_id'])
         title_size = font2.getsize(title)
-        draw.text(((800 - title_size[0]) / 2, 10), title, font=font2, fill=(255, 255, 255))
         # 手动加粗
+        draw.text(((800 - title_size[0]) / 2    , 10), title, font=font2, fill=(255, 255, 255))
+        draw.text(((800 - title_size[0]) / 2 + 1, 10), title, font=font2, fill=(255, 255, 255))
         draw.text((20, 50), '开始时间', font=font, fill=(255, 255, 255))
         draw.text((21, 50), '开始时间', font=font, fill=(255, 255, 255))
         draw.text((200, 50), '持续时间', font=font, fill=(255, 255, 255))
@@ -496,7 +497,14 @@ class Dota2:
         draw.text((360, 70), level, font=font, fill=(255, 255, 255))
         draw.text((500, 70), region, font=font, fill=(255, 255, 255))
         draw.text((650, 70), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
+        draw.text((50, 420 - 300 * int(match['radiant_win'])), '胜利', font=font, fill=(255, 0, 0))
         for slot in range(0, 2):
+            team_damage = 0
+            team_damage_received = 0
+            team_kills = 0
+            team_deaths = 0
+            team_gold = 0
+            team_exp = 0
             draw.text(
                     (20, 120 + slot * 300),
                     SLOT_CHINESE[slot],
@@ -506,6 +514,12 @@ class Dota2:
             for i in range(0, 5):
                 idx = slot * 5 + i
                 p = match['players'][idx]
+                team_damage += p['hero_damage']
+                team_damage_received += sum(p['damage_inflictor_received'].values())
+                team_kills += p['kills']
+                team_deaths += p['deaths']
+                team_gold += p['total_gold']
+                team_exp += p['total_xp']
                 hero_img = Image.open(os.path.join(IMAGES, '{}_full.png'.format(HEROES[p['hero_id']])))
                 hero_img = hero_img.resize((80, 45), Image.ANTIALIAS)
                 image.paste(hero_img, (20, 150 + slot * 50 + idx * 50))
@@ -545,6 +559,10 @@ class Dota2:
                     item_img = item_img.resize((42, 31), Image.ANTIALIAS)
                     item_neutral_offset = 20 if item == 'item_neutral' else 0
                     image.paste(item_img,(470 + item_neutral_offset + 42 * ITEM_SLOTS.index(item), 150 + slot * 50 + idx * 50))
+            draw.text((550, 120 + slot * 300), f'杀敌 {team_kills}', font=font, fill=(128, 128, 128))
+            draw.text((610, 120 + slot * 300), f'总经济 {team_gold}', font=font, fill=(128, 128, 128))
+            draw.text((700, 120 + slot * 300), f'总经验 {team_exp}', font=font, fill=(128, 128, 128))
+
         draw.text(
             (10, 780),
             '※录像分析数据来自opendota.com，DOTA2游戏图片素材版权归Value所有',
