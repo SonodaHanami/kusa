@@ -118,11 +118,12 @@ class Steam:
                     return f'我们群里有{name}吗？'
                 return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
             j = requests.get(OPENDOTA_PLAYERS.format(sid)).json()
-            if j.get('rank_tier'):
+            rank = j.get('rank_tier') if j.get('rank_tier') else 0
+            if rank:
                 return '{}现在是{}{}'.format(
                     j['profile']['personaname'],
-                    PLAYER_RANK[j['rank_tier'] // 10],
-                    j['rank_tier'] % 10
+                    PLAYER_RANK[rank // 10],
+                    rank % 10 if rank % 10 else ''
                 )
             else:
                 return '查不到哟'
@@ -505,15 +506,18 @@ class Dota2:
             for i in range(0, 5):
                 idx = slot * 5 + i
                 p = match['players'][idx]
-                hero_head = Image.open(os.path.join(IMAGES, '{}_full.png'.format(HEROES[p['hero_id']])))
-                hero_head = hero_head.resize((80, 45), Image.ANTIALIAS)
-                image.paste(hero_head, (20, 150 + slot * 50 + idx * 50))
+                hero_img = Image.open(os.path.join(IMAGES, '{}_full.png'.format(HEROES[p['hero_id']])))
+                hero_img = hero_img.resize((80, 45), Image.ANTIALIAS)
+                image.paste(hero_img, (20, 150 + slot * 50 + idx * 50))
                 draw.text(
                     (120, 150 + slot * 50 + idx * 50),
                     p.get('personaname') if p.get('personaname') else '匿名',
                     font=font,
                     fill=(0, 0, 0)
                 )
+                rank = p.get('rank_tier') if p.get('rank_tier') else 0
+                rank = '{}{}'.format(PLAYER_RANK[rank // 10], rank % 10 if rank % 10 else '')
+                draw.text((120, 170 + slot * 50 + idx * 50), rank, font=font, fill=(128, 128, 128))
                 kda = '{}/{}/{}\nKDA:{:.2f}'.format(
                     p['kills'], p['deaths'], p['assists'],
                     (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths']

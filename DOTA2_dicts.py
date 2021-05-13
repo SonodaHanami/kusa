@@ -810,6 +810,7 @@ SLOT = ['Radiant', 'Dire']
 SLOT_CHINESE = ['天辉', '夜魇']
 
 PLAYER_RANK = {
+    0: '未知',
     1: '先锋',
     2: '卫士',
     3: '中军',
