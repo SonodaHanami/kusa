@@ -523,6 +523,12 @@ class Dota2:
                         image.paste(item_img,(470 + 42 * item_slots.index(item), 60 + slot * 30 + idx * 50))
                     else:
                         image.paste(item_img,(450 + 42 * item_slots.index(item), 60 + slot * 30 + idx * 50))
+        draw.text(
+            (10, 583),
+            '※录像分析数据来自opendota.com，DOTA2游戏图片素材版权归Value所有',
+            font=font,
+            fill=(128, 128, 128)
+        )
         image.save(os.path.expanduser(f'~/.kusa/DOTA2_match/{match_id}.png'), 'png')
 
     def get_matches_report(self):
