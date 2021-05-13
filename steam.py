@@ -484,7 +484,7 @@ class Dota2:
         start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
         duration = '{}分{}秒'.format(match['duration'] // 60, match['duration'] % 60)
         level = SKILL_LEVEL[match['skill']] if match.get('skill') else 'Unknown'
-        region_id = 'region_{}'.format(match['region'])
+        region_id = 'region_{}'.format(match.get('region'))
         region = REGION[region_id] if region_id in REGION else '未知'
         mode_id = match["game_mode"]
         mode = GAME_MODE[mode_id] if mode_id in GAME_MODE else '未知'
