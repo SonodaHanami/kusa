@@ -17,7 +17,7 @@ APIKEY = CONFIG['SETU_APIKEY']
 SOURCE_LOLICON_APP = 'https://api.lolicon.app/setu/'
 
 SETU = os.path.expanduser('~/.kusa/setu.json')
-SETU_REPLY = '{pid}\n{title}\n{author}\n[CQ:image,file=file:///{path},cache=1]'
+SETU_REPLY = '{pid}\n{title}\n{author}\n[CQ:image,file=file:///{path},cache=0]'
 TEMP_IMG = os.path.expanduser('~/.kusa/setu/temp{}.png')
 MAX_TIME = 5
 JIESE_LIMIT = 3
