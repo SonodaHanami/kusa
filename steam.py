@@ -473,23 +473,28 @@ class Dota2:
         # 手动加粗
         draw.text((20, 50), '开始时间', font=font, fill=(255, 255, 255))
         draw.text((21, 50), '开始时间', font=font, fill=(255, 255, 255))
-        draw.text((220, 50), '持续时间', font=font, fill=(255, 255, 255))
-        draw.text((221, 50), '持续时间', font=font, fill=(255, 255, 255))
-        draw.text((420, 50), 'Level', font=font, fill=(255, 255, 255))
-        draw.text((421, 50), 'Level', font=font, fill=(255, 255, 255))
-        draw.text((620, 50), '比赛模式', font=font, fill=(255, 255, 255))
-        draw.text((621, 50), '比赛模式', font=font, fill=(255, 255, 255))
+        draw.text((200, 50), '持续时间', font=font, fill=(255, 255, 255))
+        draw.text((201, 50), '持续时间', font=font, fill=(255, 255, 255))
+        draw.text((360, 50), 'Level', font=font, fill=(255, 255, 255))
+        draw.text((361, 50), 'Level', font=font, fill=(255, 255, 255))
+        draw.text((500, 50), '地区', font=font, fill=(255, 255, 255))
+        draw.text((501, 50), '地区', font=font, fill=(255, 255, 255))
+        draw.text((650, 50), '比赛模式', font=font, fill=(255, 255, 255))
+        draw.text((651, 50), '比赛模式', font=font, fill=(255, 255, 255))
         start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
         duration = '{}分{}秒'.format(match['duration'] // 60, match['duration'] % 60)
         level = SKILL_LEVEL[match['skill']] if match.get('skill') else 'Unknown'
+        region_id = 'region_{}'.format(match['region'])
+        region = REGION[region_id] if region_id in REGION else '未知'
         mode_id = match["game_mode"]
         mode = GAME_MODE[mode_id] if mode_id in GAME_MODE else '未知'
         lobby_id = match['lobby_type']
         lobby = LOBBY[lobby_id] if lobby_id in LOBBY else '未知'
         draw.text((20, 70), start_time, font=font, fill=(255, 255, 255))
-        draw.text((220, 70), duration, font=font, fill=(255, 255, 255))
-        draw.text((420, 70), level, font=font, fill=(255, 255, 255))
-        draw.text((620, 70), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
+        draw.text((200, 70), duration, font=font, fill=(255, 255, 255))
+        draw.text((360, 70), level, font=font, fill=(255, 255, 255))
+        draw.text((500, 70), region, font=font, fill=(255, 255, 255))
+        draw.text((650, 70), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
         for slot in range(0, 2):
             draw.text(
                     (20, 120 + slot * 300),
@@ -500,7 +505,7 @@ class Dota2:
             for i in range(0, 5):
                 idx = slot * 5 + i
                 p = match['players'][idx]
-                hero_head = Image.open('{}/{}_full.png'.format(IMAGES, HEROES[p['hero_id']]))
+                hero_head = Image.open(os.path.join(IMAGES, '{}_full.png'.format(HEROES[p['hero_id']])))
                 hero_head = hero_head.resize((80, 45), Image.ANTIALIAS)
                 image.paste(hero_head, (20, 150 + slot * 50 + idx * 50))
                 draw.text(
@@ -532,7 +537,7 @@ class Dota2:
                 for item in ITEM_SLOTS:
                     if p[item] == 0:
                         continue
-                    item_img = Image.open('{}/{}_lg.png'.format(IMAGES, ITEMS[p[item]]))
+                    item_img = Image.open(os.path.join(IMAGES, '{}_lg.png'.format(ITEMS[p[item]])))
                     item_img = item_img.resize((42, 31), Image.ANTIALIAS)
                     item_neutral_offset = 20 if item == 'item_neutral' else 0
                     image.paste(item_img,(470 + item_neutral_offset + 42 * ITEM_SLOTS.index(item), 150 + slot * 50 + idx * 50))
