@@ -505,12 +505,7 @@ class Dota2:
             team_deaths = 0
             team_gold = 0
             team_exp = 0
-            draw.text(
-                    (20, 120 + slot * 300),
-                    SLOT_CHINESE[slot],
-                    font=font,
-                    fill=(192, 0, 0)
-                )
+            draw.text((20, 120 + slot * 300), SLOT_CHINESE[slot], font=font, fill=(192, 0, 0))
             for i in range(0, 5):
                 idx = slot * 5 + i
                 p = match['players'][idx]
@@ -531,26 +526,21 @@ class Dota2:
                 )
                 rank = p.get('rank_tier') if p.get('rank_tier') else 0
                 rank = '{}{}'.format(PLAYER_RANK[rank // 10], rank % 10 if rank % 10 else '')
-                draw.text((120, 170 + slot * 50 + idx * 50), rank, font=font, fill=(128, 128, 128))
+                draw.text((120, 164 + slot * 50 + idx * 50), rank, font=font, fill=(128, 128, 128))
                 kda = '{}/{}/{}\nKDA:{:.2f}'.format(
                     p['kills'], p['deaths'], p['assists'],
                     (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths']
                 )
-                draw.text(
-                    (300, 150 + slot * 50 + idx * 50),
-                    kda,
-                    font=font,
-                    fill=(0, 0, 0)
-                )
+                draw.text((350, 150 + slot * 50 + idx * 50), kda, font=font, fill=(0, 0, 0))
 
                 s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
                 scepter_img = Image.open(os.path.join(IMAGES, f'scepter_{s}.png'))
                 scepter_img = scepter_img.resize((20, 20), Image.ANTIALIAS)
-                image.paste(scepter_img, (420 , 150 + slot * 50 + idx * 50))
+                image.paste(scepter_img, (430 , 150 + slot * 50 + idx * 50))
                 s = 1 if 'aghanims_shard' in p['item_usage'] else 0
                 shard_img = Image.open(os.path.join(IMAGES, f'shard_{s}.png'))
                 shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
-                image.paste(shard_img, (420 , 170 + slot * 50 + idx * 50))
+                image.paste(shard_img, (430 , 170 + slot * 50 + idx * 50))
 
                 for item in ITEM_SLOTS:
                     if p[item] == 0:
@@ -559,6 +549,15 @@ class Dota2:
                     item_img = item_img.resize((42, 31), Image.ANTIALIAS)
                     item_neutral_offset = 20 if item == 'item_neutral' else 0
                     image.paste(item_img,(470 + item_neutral_offset + 42 * ITEM_SLOTS.index(item), 150 + slot * 50 + idx * 50))
+
+            for i in range(0, 5):
+                idx = slot * 5 + i
+                p = match['players'][idx]
+                participation = 0 if team_kills == 0 else 100 * (p['kills'] + p['assists']) / team_kills
+                draw.text((120, 178 + slot * 50 + idx * 50), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
+                damage_rate = 0 if team_damage == 0 else 100 * (p['hero_damage'] / team_damage)
+                draw.text((220, 178 + slot * 50 + idx * 50), '伤害: {:.2f}%'.format(damage_rate), font=font, fill=(0, 0, 0))
+
             draw.text((550, 120 + slot * 300), f'杀敌 {team_kills}', font=font, fill=(128, 128, 128))
             draw.text((610, 120 + slot * 300), f'总经济 {team_gold}', font=font, fill=(128, 128, 128))
             draw.text((700, 120 + slot * 300), f'总经验 {team_exp}', font=font, fill=(128, 128, 128))
