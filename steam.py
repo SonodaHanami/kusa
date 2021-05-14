@@ -485,7 +485,7 @@ class Dota2:
         draw.text((651, 50), '比赛模式', font=font, fill=(255, 255, 255))
         start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
         duration = '{}分{}秒'.format(match['duration'] // 60, match['duration'] % 60)
-        level = SKILL_LEVEL[match['skill']] if match.get('skill') else 'Unknown'
+        skill = SKILL_LEVEL[match['skill']] if match.get('skill') else 'Unknown'
         region_id = 'region_{}'.format(match.get('region'))
         region = REGION[region_id] if region_id in REGION else '未知'
         mode_id = match["game_mode"]
@@ -494,7 +494,7 @@ class Dota2:
         lobby = LOBBY[lobby_id] if lobby_id in LOBBY else '未知'
         draw.text((20, 70), start_time, font=font, fill=(255, 255, 255))
         draw.text((200, 70), duration, font=font, fill=(255, 255, 255))
-        draw.text((360, 70), level, font=font, fill=(255, 255, 255))
+        draw.text((360, 70), skill, font=font, fill=(255, 255, 255))
         draw.text((500, 70), region, font=font, fill=(255, 255, 255))
         draw.text((650, 70), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
         draw.rectangle((0, 120, 800, 122), (60, 144, 40))
@@ -526,6 +526,10 @@ class Dota2:
                 hero_img = Image.open(os.path.join(IMAGES, '{}_full.png'.format(HEROES[p['hero_id']])))
                 hero_img = hero_img.resize((80, 45), Image.ANTIALIAS)
                 image.paste(hero_img, (20, 170 + slot * 70 + idx * 50))
+                draw.rectangle((80, 200 + slot * 70 + idx * 50, 99, 214 + slot * 70 + idx * 50), fill=(50, 50, 50))
+                level = str(p['level'])
+                level_size = font.getsize(level)
+                draw.text((97 - level_size[0], 199 + slot * 70 + idx * 50), level, font=font, fill=(255, 255, 255))
                 rank = p.get('rank_tier') if p.get('rank_tier') else 0
                 rank, star = rank // 10, rank % 10
                 rank_img = Image.open(os.path.join(IMAGES, f'rank_icon_{rank}.png'))
