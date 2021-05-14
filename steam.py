@@ -463,7 +463,7 @@ class Dota2:
 
     def generate_match_image(self, match_id):
         match = self.get_match(match_id)
-        image = Image.new('RGBA', (800, 800), (255, 255, 255))
+        image = Image.new('RGB', (800, 800), (255, 255, 255))
         font = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 12)
         font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 18)
         draw = ImageDraw.Draw(image)
@@ -536,6 +536,8 @@ class Dota2:
                 if star:
                     rank_star = Image.open(os.path.join(IMAGES, f'rank_star_{star}.png'))
                     rank_img = Image.alpha_composite(rank_img, rank_star)
+                rank_img = Image.alpha_composite(Image.new('RGBA', rank_img.size, (255, 255, 255)), rank_img)
+                rank_img = rank_img.convert('RGB')
                 rank_img = rank_img.resize((45, 45), Image.ANTIALIAS)
                 image.paste(rank_img, (100, 170 + slot * 70 + idx * 50))
                 rank = '{}{}'.format(PLAYER_RANK[rank], star if star else '')
@@ -562,13 +564,40 @@ class Dota2:
                 shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
                 image.paste(shard_img, (430 , 190 + slot * 70 + idx * 50))
 
+                image.paste(Image.new('RGB', (252, 32), (192, 192, 192)), (469, 169 + slot * 70 + idx * 50))
                 for item in ITEM_SLOTS:
                     if p[item] == 0:
-                        continue
-                    item_img = Image.open(os.path.join(IMAGES, '{}_lg.png'.format(ITEMS[p[item]])))
-                    item_img = item_img.resize((42, 31), Image.ANTIALIAS)
-                    item_neutral_offset = 20 if item == 'item_neutral' else 0
-                    image.paste(item_img,(470 + item_neutral_offset + 42 * ITEM_SLOTS.index(item), 170 + slot * 70 + idx * 50))
+                        item_img = Image.new('RGB', (40, 30), (128, 128, 128))
+                    else:
+                        item_img = Image.open(os.path.join(IMAGES, '{}_lg.png'.format(ITEMS[p[item]])))
+                    if item == 'item_neutral':
+                        ima = item_img.convert("RGBA")
+                        size = ima.size
+                        r1 = min(size[0], size[1])
+                        if size[0] != size[1]:
+                            ima = ima.crop((
+                                (size[0] - r1) // 2,
+                                (size[1] - r1) // 2,
+                                (size[0] + r1) // 2,
+                                (size[1] + r1) // 2
+                            ))
+                        r2 = r1 // 2
+                        imb = Image.new('RGBA', (r2 * 2, r2 * 2), (255, 255, 255, 0))
+                        pima = ima.load()
+                        pimb = imb.load()
+                        r = r1 / 2
+                        for i in range(r1):
+                            for j in range(r1):
+                                l = ((i - r) ** 2 + (j - r) ** 2) ** 0.5
+                                if l < r2:
+                                    pimb[i - (r - r2), j - (r - r2)] = pima[i, j]
+                        imb = imb.resize((30, 30), Image.ANTIALIAS)
+                        imb = Image.alpha_composite(Image.new('RGBA', imb.size, (255, 255, 255)), imb)
+                        item_img = imb.convert('RGB')
+                        image.paste(item_img, (724, 170 + slot * 70 + idx * 50))
+                    else:
+                        item_img = item_img.resize((40, 30), Image.ANTIALIAS)
+                        image.paste(item_img, (470 + 42 * ITEM_SLOTS.index(item), 170 + slot * 70 + idx * 50))
 
             for i in range(0, 5):
                 idx = slot * 5 + i
