@@ -106,20 +106,22 @@ class Kusa:
         group = str(message.get('group_id', ''))
         user = str(message.get('user_id', ''))
 
-        if user != ADMIN:
+        if user != ADMIN and message['sender']['role'] == 'member':
             return None
-        if msg.startswith('!'):
+        if msg.startswith('!') or msg.startswith('！'):
             msg = msg[1:]
             reply = ''
             if msg == 'lssv':
                 reply = ', '.join([type(k).__name__ for k in self.kusa_modules])
             if msg.startswith('joker'):
                 msg = msg[5:].strip()
-                if msg == 'on':
+                if msg == '':
+                    reply = 'joker: {}'.format('active' if group in self.joker_enabled else 'inactive')
+                elif msg == 'on':
                     if group not in self.joker_enabled:
                         self.joker_enabled.append(group)
                         reply = 'joker ON!'
-                if msg == 'off':
+                elif msg == 'off':
                     if group in self.joker_enabled:
                         self.joker_enabled.remove(group)
                         reply = 'joker OFF!'
