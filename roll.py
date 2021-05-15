@@ -16,16 +16,13 @@ class Roll:
         group = str(message.get("group_id", ''))
         user = str(message.get("user_id", 0))
         replys = []
-        prefix = False
-        if msg[0] in ('/', '.'):
-            msg = msg[1:].strip()
-            prefix = True
 
-        if msg.startswith('roll') or (prefix and msg.startswith('r')):
-            msg = msg[4:].strip()
-            if not msg:
-                return '{}'.format(ri(1, 100))
+        prm = re.match('([!\.]?roll|[!\.]r)(.*)', msg)
+        if prm:
             try:
+                msg = prm[2].strip()
+                if not msg:
+                    return '{}'.format(ri(1, 100))
                 prm = re.findall('(\d+)?d(\d+)?([\+\-]\d+)?', msg)
                 for p in prm:
                     dice =  int(p[0]) if p[0] else 1
@@ -35,6 +32,8 @@ class Roll:
                         return '¿'
                     if plane > MAX_PLANE:
                         return '这么多面，建议玩球'
+                    if dice > MAX_DICE:
+                        return '唔得，骰子不够叻'
                     for i in range(dice):
                         replys.append('{}'.format(ri(1, plane) + delta))
                 if replys:
@@ -55,8 +54,9 @@ class Roll:
             except Exception as e:
                 return 'Roll error: {}'.format(e)
 
-        if prefix and msg.startswith('set'):
-            msg = msg[4:].strip()
+        prm = re.match('([!\.]set)(.*)', msg)
+        if prm:
+            msg = prm[2].strip()
             if not msg:
                 self.plane = DEFAULT_PLANE
                 return '默认面数现在是{}'.format(self.plane)
