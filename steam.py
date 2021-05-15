@@ -351,6 +351,13 @@ class Dota2:
         dumpjson(match, MATCH)
         return match
 
+    def get_image(self, img_path):
+        try:
+            return Image.open(os.path.join(IMAGES, img_path))
+        except Exception as e:
+            print(e)
+            return Image.new('RGBA', (30, 30), (255, 160, 160))
+
 
     def generate_match_message(self, match_id, players):
         match = self.get_match(match_id)
@@ -525,7 +532,7 @@ class Dota2:
                 team_deaths += p['deaths']
                 team_gold += p['total_gold']
                 team_exp += p['total_xp']
-                hero_img = Image.open(os.path.join(IMAGES, '{}_full.png'.format(HEROES[p['hero_id']])))
+                hero_img = self.get_image('{}_full.png'.format(HEROES[p['hero_id']]))
                 hero_img = hero_img.resize((80, 45), Image.ANTIALIAS)
                 image.paste(hero_img, (20, 170 + slot * 70 + idx * 50))
                 draw.rectangle((80, 200 + slot * 70 + idx * 50, 99, 214 + slot * 70 + idx * 50), fill=(50, 50, 50))
@@ -534,9 +541,9 @@ class Dota2:
                 draw.text((97 - level_size[0], 199 + slot * 70 + idx * 50), level, font=font, fill=(255, 255, 255))
                 rank = p.get('rank_tier') if p.get('rank_tier') else 0
                 rank, star = rank // 10, rank % 10
-                rank_img = Image.open(os.path.join(IMAGES, f'rank_icon_{rank}.png'))
+                rank_img = self.get_image(f'rank_icon_{rank}.png')
                 if star:
-                    rank_star = Image.open(os.path.join(IMAGES, f'rank_star_{star}.png'))
+                    rank_star = self.get_image(f'rank_star_{star}.png')
                     rank_img = Image.alpha_composite(rank_img, rank_star)
                 rank_img = Image.alpha_composite(Image.new('RGBA', rank_img.size, (255, 255, 255)), rank_img)
                 rank_img = rank_img.convert('RGB')
@@ -562,7 +569,7 @@ class Dota2:
                     if p[item] == 0:
                         item_img = Image.new('RGB', (40, 30), (128, 128, 128))
                     else:
-                        item_img = Image.open(os.path.join(IMAGES, '{}_lg.png'.format(ITEMS[p[item]])))
+                        item_img = self.get_image('{}_lg.png'.format(ITEMS[p[item]]))
                     if item == 'item_neutral':
                         ima = item_img.convert("RGBA")
                         size = ima.size
@@ -593,11 +600,11 @@ class Dota2:
                         image.paste(item_img, (470 + 42 * ITEM_SLOTS.index(item), 170 + slot * 70 + idx * 50))
 
                 s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
-                scepter_img = Image.open(os.path.join(IMAGES, f'scepter_{s}.png'))
+                scepter_img = self.get_image(f'scepter_{s}.png')
                 scepter_img = scepter_img.resize((20, 20), Image.ANTIALIAS)
                 image.paste(scepter_img, (760 , 170 + slot * 70 + idx * 50))
                 s = 1 if 'aghanims_shard' in p['item_usage'] else 0
-                shard_img = Image.open(os.path.join(IMAGES, f'shard_{s}.png'))
+                shard_img = self.get_image(f'shard_{s}.png')
                 shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
                 image.paste(shard_img, (760 , 190 + slot * 70 + idx * 50))
 
