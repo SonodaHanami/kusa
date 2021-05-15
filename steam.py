@@ -72,7 +72,7 @@ class Steam:
             else:
                 return '本群未订阅Steam'
 
-        prm = re.match('(怎么)?绑定steam(.*)', msg, re.I)
+        prm = re.match('(怎么)?绑定 *steam(.*)', msg, re.I)
         if prm:
             usage = '使用方法：\n绑定Steam Steam好友代码（9位）（也可能是8位或10位）'
             try:
@@ -325,12 +325,12 @@ class Dota2:
     def request_match(self, match_id):
         try:
             j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
-            print('{} 比赛编号{} 开始请求分析'.format(datetime.now(), match_id))
             job_id = j['job']['jobId']
+            print('{} 比赛编号 {} 开始请求分析 (job_id: {})'.format(datetime.now(), match_id, job_id))
             while j:
                 time.sleep(2)
                 j = requests.get(OPENDOTA_REQUEST.format(job_id)).json()
-            print('{} 比赛编号{} 分析完成'.format(datetime.now(), match_id))
+            print('{} 比赛编号 {} 分析完成'.format(datetime.now(), match_id))
             return True
         except Exception as e:
             print(e)
@@ -550,19 +550,10 @@ class Dota2:
                 )
 
                 kda = '{}/{}/{}'.format(p['kills'], p['deaths'], p['assists'])
-                draw.text((330, 170 + slot * 70 + idx * 50), kda, font=font, fill=(0, 0, 0))
+                draw.text((370, 170 + slot * 70 + idx * 50), kda, font=font, fill=(0, 0, 0))
                 kda = 'KDA:{:.2f}'.format(
                     (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths'])
-                draw.text((330, 184 + slot * 70 + idx * 50), kda, font=font, fill=(0, 0, 0))
-
-                s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
-                scepter_img = Image.open(os.path.join(IMAGES, f'scepter_{s}.png'))
-                scepter_img = scepter_img.resize((20, 20), Image.ANTIALIAS)
-                image.paste(scepter_img, (430 , 170 + slot * 70 + idx * 50))
-                s = 1 if 'aghanims_shard' in p['item_usage'] else 0
-                shard_img = Image.open(os.path.join(IMAGES, f'shard_{s}.png'))
-                shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
-                image.paste(shard_img, (430 , 190 + slot * 70 + idx * 50))
+                draw.text((370, 184 + slot * 70 + idx * 50), kda, font=font, fill=(0, 0, 0))
 
                 image.paste(Image.new('RGB', (252, 32), (192, 192, 192)), (469, 169 + slot * 70 + idx * 50))
                 for item in ITEM_SLOTS:
@@ -599,15 +590,25 @@ class Dota2:
                         item_img = item_img.resize((40, 30), Image.ANTIALIAS)
                         image.paste(item_img, (470 + 42 * ITEM_SLOTS.index(item), 170 + slot * 70 + idx * 50))
 
+                s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
+                scepter_img = Image.open(os.path.join(IMAGES, f'scepter_{s}.png'))
+                scepter_img = scepter_img.resize((20, 20), Image.ANTIALIAS)
+                image.paste(scepter_img, (760 , 170 + slot * 70 + idx * 50))
+                s = 1 if 'aghanims_shard' in p['item_usage'] else 0
+                shard_img = Image.open(os.path.join(IMAGES, f'shard_{s}.png'))
+                shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
+                image.paste(shard_img, (760 , 190 + slot * 70 + idx * 50))
+
             for i in range(0, 5):
                 idx = slot * 5 + i
                 p = match['players'][idx]
                 participation = 0 if team_kills == 0 else 100 * (p['kills'] + p['assists']) / team_kills
                 damage_rate = 0 if team_damage == 0 else 100 * (p['hero_damage'] / team_damage)
-                damage_received_rate = 0 if team_damage_received == 0 else 100 * (sum(p['damage_inflictor_received'].values()) / team_damage_received)
-                draw.text((210, 184 + slot * 70 + idx * 50), '造成伤害: {:.2f}%'.format(damage_rate), font=font, fill=(0, 0, 0))
-                draw.text((210, 198 + slot * 70 + idx * 50), '承受伤害: {:.2f}%'.format(damage_received_rate), font=font, fill=(0, 0, 0))
-                draw.text((330, 198 + slot * 70 + idx * 50), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
+                damage_received = sum(p['damage_inflictor_received'].values())
+                damage_received_rate = 0 if team_damage_received == 0 else 100 * (damage_received / team_damage_received)
+                draw.text((210, 184 + slot * 70 + idx * 50), '造成伤害: {}({:.2f}%)'.format(p['hero_damage'], damage_rate), font=font, fill=(0, 0, 0))
+                draw.text((210, 198 + slot * 70 + idx * 50), '承受伤害: {}({:.2f}%)'.format(damage_received, damage_received_rate), font=font, fill=(0, 0, 0))
+                draw.text((370, 198 + slot * 70 + idx * 50), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
 
             draw.text((550, 140 + slot * 320), f'杀敌 {team_kills}', font=font, fill=(128, 128, 128))
             draw.text((610, 140 + slot * 320), f'总经济 {team_gold}', font=font, fill=(128, 128, 128))
