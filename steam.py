@@ -40,6 +40,8 @@ class Steam:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
+        mkdir_if_not_exists(DOTA2_MATCHES)
+
         self.dota2 = Dota2()
 
 

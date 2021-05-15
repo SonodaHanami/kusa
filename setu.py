@@ -26,6 +26,8 @@ class Setu:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
+        mkdir_if_not_exists(SETU)
+
         self.last = {}
 
 

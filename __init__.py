@@ -3,7 +3,7 @@ import json
 from .utils import *
 
 __all__ = [
-    'Kusa',
+    'kusa',
 ]
 
 default_config = {
@@ -19,5 +19,9 @@ config_path = os.path.join(
 )
 if not os.path.exists(config_path):
     dumpjson(default_config, config_path)
+
+mkdir_if_not_exists(os.path.expanduser('~/.kusa'))
+mkdir_if_not_exists(os.path.expanduser('~/.kusa/fonts'))
+mkdir_if_not_exists(os.path.expanduser('~/.kusa/images'))
 
 from .kusa import Kusa
