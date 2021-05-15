@@ -25,7 +25,7 @@ PASS_CHAR = r'''
 abcdefghijklmnopqrstuvwxyz
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
  `~!@#$%^&*()-=_+\|[]{}'";:,./<>?
-，。、【】！？“”：；
+，。、（）【】！？“”：；
 的地得了是哇哪嘛吗啊啦呀吧哦呢呐哈着过
 '''
 
@@ -47,7 +47,7 @@ class Kusa:
             whois.Whois(**kwargs),
         ]
 
-        self.joker_disabled = []
+        self.joker_enabled = []
 
     def jobs(self):
         jobs = []
@@ -113,6 +113,16 @@ class Kusa:
             reply = ''
             if msg == 'lssv':
                 reply = ', '.join([type(k).__name__ for k in self.kusa_modules])
+            if msg.startswith('joker'):
+                msg = msg[5:].strip()
+                if msg == 'on':
+                    if group not in self.joker_enabled:
+                        self.joker_enabled.append(group)
+                        reply = 'joker ON!'
+                if msg == 'off':
+                    if group in self.joker_enabled:
+                        self.joker_enabled.remove(group)
+                        reply = 'joker OFF!'
 
             if reply:
                 await self.api.send_group_msg(
@@ -128,18 +138,7 @@ class Kusa:
         user = str(message.get('user_id', ''))
         nickname = message["sender"].get("nickname", "")
 
-        if msg == '!enable':
-            if group in self.joker_disabled:
-                self.joker_disabled.remove(group)
-                replys.append('joker_enabled')
-                return None
-        if msg == '!disable':
-            if group not in self.joker_disabled:
-                self.joker_disabled.append(group)
-                replys.append('joker_disabled')
-                return None
-
-        if group in self.joker_disabled:
+        if group not in self.joker_enabled:
             return None
         if msg.startswith('？') and ri(1, 3) == 1:
             replys.append('？')
