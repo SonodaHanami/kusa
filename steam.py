@@ -106,35 +106,56 @@ class Steam:
 
         prm = re.match('查询(.+)的天梯段位$', msg)
         if prm:
+            await self.api.send_group_msg(
+                    group_id=message['group_id'],
+                    message=f'正在查询',
+                )
             name = prm[1].strip()
             steamdata = loadjson(STEAM)
-            wi = whois.Whois()
-            obj = wi.object_explainer(group, user, name)
-            steam_info = steamdata.get(obj['uid'])
-            if steam_info:
-                sid = steam_info.get('steam_id_short')
-                if not sid:
-                    return IDK
-            else: # steam_info is None
-                if obj['uid'] == UNKNOWN:
-                    return f'我们群里有{name}吗？'
-                return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
-            j = requests.get(OPENDOTA_PLAYERS.format(sid)).json()
-            rank = j.get('rank_tier') if j.get('rank_tier') else 0
-            if rank:
-                return '{}现在是{}{}'.format(
-                    j['profile']['personaname'],
-                    PLAYER_RANK[rank // 10],
-                    rank % 10 if rank % 10 else ''
-                )
+            memberdata = loadjson(MEMBER)
+            if re.search('群友', name):
+                is_solo = False
+                players = self.get_players()
+                players2 = []
+                for p in players.keys():
+                    for q in players[p]:
+                        if q in memberdata[group]:
+                            players2.append(p - 76561197960265728)
+                players2 = list(set(players2))
+            else:
+                is_solo = True
+                wi = whois.Whois()
+                obj = wi.object_explainer(group, user, name)
+                steam_info = steamdata.get(obj['uid'])
+                if steam_info:
+                    sid = steam_info.get('steam_id_short')
+                    if not sid:
+                        return IDK
+                else: # steam_info is None
+                    if obj['uid'] == UNKNOWN:
+                        return f'我们群里有{name}吗？'
+                    return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
+                players2 = [sid]
+            ranks = []
+            replys = []
+            for sid in players2:
+                j = requests.get(OPENDOTA_PLAYERS.format(sid)).json()
+                rank = j.get('rank_tier') if j.get('rank_tier') else 0
+                if rank:
+                    ranks.append((j['profile']['personaname'], rank))
+            if ranks:
+                ranks = sorted(ranks, key=lambda i: i[1], reverse=True)
+                for name, rank in ranks:
+                    replys.append('{}现在是{}{}'.format(name, PLAYER_RANK[rank // 10], rank % 10 or ''))
+                if len(replys) > 2:
+                    replys.append('大家都有光明的未来！')
+                return '\n'.join(replys)
             else:
                 return '查不到哟'
 
-        prm = re.match('(.*)在(干|做|搞|整)(嘛|啥|哈|什么)', msg)
+        prm = re.match('(.+)在(干|做|搞|整)(嘛|啥|哈|什么)', msg)
         if prm:
-            name = prm[1]
-            if not name:
-                return None
+            name = prm[1].strip()
             steamdata = loadjson(STEAM)
             memberdata = loadjson(MEMBER)
             if re.search('群友', name):
@@ -161,8 +182,8 @@ class Steam:
                     if obj['uid'] == UNKNOWN:
                         return f'我们群里有{name}吗？'
                     return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
-            j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
             replys = []
+            j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
             for p in j['response']['players']:
                 if p.get('gameextrainfo'):
                     replys.append(p['personaname'] + '正在玩' + p['gameextrainfo'])
