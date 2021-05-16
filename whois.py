@@ -36,8 +36,11 @@ class Whois:
 
 
         if msg == '查询群友':
-            memberdata = json.load(open(MEMBER, 'r'))
-            return "本群群友有" + "，".join([memberdata[group][p][0] for p in memberdata[group].keys()])
+            data = loadjson(MEMBER)
+            if group in data and len(data[group]):
+                return '本群群友有{}'.format("，".join([data[group][p][0] for p in data[group].keys()]))
+            else:
+                return "没有查询到本群群友"
 
         if re.search('是不是', msg):
             prm = re.search('(.+)是不是(.+)[?？]', msg)
