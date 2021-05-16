@@ -4,14 +4,14 @@ import json
 
 def loadjson(jsonfile, default={}):
     try:
-        data = json.load(open(jsonfile, 'r'))
+        data = json.load(open(jsonfile, 'r', encoding='utf-8'))
     except:
         data = default
     finally:
         return data
 
 def dumpjson(jsondata, jsonfile):
-    with open(jsonfile, 'w') as f:
+    with open(jsonfile, 'w', encoding='utf-8') as f:
         json.dump(jsondata, f, ensure_ascii=False, indent=4)
 
 def load_config():
