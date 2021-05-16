@@ -263,7 +263,6 @@ class Steam:
 
         for match_id in matches:
             steamdata['DOTA2_matches_pool'][match_id] = {
-                'end_time': -1,
                 'players': matches[match_id]
             }
 
@@ -653,13 +652,13 @@ class Dota2:
         reports = []
         todelete = []
         for match_id, match_info in steamdata['DOTA2_matches_pool'].items():
-            match_info['end_time'] = self.get_match_end_time(match_id)
+            end_time = self.get_match_end_time(match_id)
             now = int(datetime.now().timestamp())
-            if match_info['end_time'] <= now - 86400 * 7:
+            if end_time <= now - 86400 * 7:
                 todelete.append(match_id)
                 continue
-            if match_info['end_time'] >= now - 600:
-                continue
+            # if end_time >= now - 600:
+            #     continue
             m = self.generate_match_message(match_id)
             if isinstance(m, str):
                 self.generate_match_image(match_id)
