@@ -325,31 +325,44 @@ class Dota2:
             return -1
 
     def request_match(self, match_id):
-        try:
-            j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
-            job_id = j['job']['jobId']
-            print('{} 比赛编号 {} 开始请求分析 (job_id: {})'.format(datetime.now(), match_id, job_id))
-            while j:
-                time.sleep(2)
-                j = requests.get(OPENDOTA_REQUEST.format(job_id)).json()
-            print('{} 比赛编号 {} 分析完成'.format(datetime.now(), match_id))
-            return True
-        except Exception as e:
-            print(e)
-            return False
+        j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
+        job_id = j['job']['jobId']
+        print('{} 比赛编号 {} 请求OPENDOTA分析，job_id: {}'.format(datetime.now(), match_id, job_id))
+        return job_id
 
     def get_match(self, match_id):
         MATCH = os.path.join(DOTA2_MATCHES, f'{match_id}.json')
         if os.path.exists(MATCH):
-            print('{} 比赛编号{} 读取本地保存的分析结果'.format(datetime.now(), match_id))
+            print('{} 比赛编号 {} 读取本地保存的分析结果'.format(datetime.now(), match_id))
             return loadjson(MATCH)
-        if not self.request_match(match_id):
-            return {}
+        steamdata = loadjson(STEAM)
         match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
         if match['players'][0]['damage_inflictor_received'] is None:
-            return {}
-        dumpjson(match, MATCH)
-        return match
+            # 比赛分析结果不完整
+            job_id = steamdata['DOTA2_matches_pool'][match_id].get('job_id')
+            if job_id:
+                # 存在之前请求分析的job_id，则查询这个job是否已完成
+                j = requests.get(OPENDOTA_REQUEST.format(job_id)).json()
+                if j:
+                    # 查询返回了数据，说明job仍未完成
+                    print('{} job_id {} 仍在处理中'.format(datetime.now(), job_id))
+                    return {}
+                else:
+                    # job完成了，可以删掉
+                    del steamdata['DOTA2_matches_pool'][match_id]['job_id']
+                    dumpjson(steamdata, STEAM)
+                    return {}
+            else:
+                # 不存在之前请求分析的job_id，重新请求一次，保存，下次再确认这个job是否已完成
+                job_id = self.request_match(match_id)
+                steamdata['DOTA2_matches_pool'][match_id]['job_id'] = job_id
+                dumpjson(steamdata, STEAM)
+                return {}
+        else:
+            # 比赛分析结果完整了
+            print('{} 比赛编号 {} 从OPENDOTA获取到分析结果'.format(datetime.now(), match_id))
+            dumpjson(match, MATCH)
+            return match
 
     def get_image(self, img_path):
         try:
@@ -359,10 +372,12 @@ class Dota2:
             return Image.new('RGBA', (30, 30), (255, 160, 160))
 
 
-    def generate_match_message(self, match_id, players):
+    def generate_match_message(self, match_id):
         match = self.get_match(match_id)
         if not match:
             return None
+        steamdata = loadjson(STEAM)
+        players = steamdata['DOTA2_matches_pool'][match_id]['players']
         start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
         duration = match['duration']
 
@@ -472,6 +487,8 @@ class Dota2:
 
     def generate_match_image(self, match_id):
         match = self.get_match(match_id)
+        if not match:
+            return None
         image = Image.new('RGB', (800, 800), (255, 255, 255))
         font = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 12)
         font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 18)
@@ -635,28 +652,27 @@ class Dota2:
         steamdata = loadjson(STEAM)
         reports = []
         todelete = []
-        for match_id in steamdata['DOTA2_matches_pool'].keys():
-            steamdata['DOTA2_matches_pool'][match_id]['end_time'] = self.get_match_end_time(match_id)
+        for match_id, match_info in steamdata['DOTA2_matches_pool'].items():
+            match_info['end_time'] = self.get_match_end_time(match_id)
             now = int(datetime.now().timestamp())
-            if steamdata['DOTA2_matches_pool'][match_id]['end_time'] <= now - 86400 * 7:
+            if match_info['end_time'] <= now - 86400 * 7:
                 todelete.append(match_id)
                 continue
-            if steamdata['DOTA2_matches_pool'][match_id]['end_time'] >= now - 600:
+            if match_info['end_time'] >= now - 600:
                 continue
-            m = self.generate_match_message(
-                match_id=match_id,
-                players=steamdata['DOTA2_matches_pool'][match_id]['players']
-            )
+            m = self.generate_match_message(match_id)
             if isinstance(m, str):
-                self.generate_match_image(match_id=match_id)
+                self.generate_match_image(match_id)
                 m += '\n[CQ:image,file=file:///{}]'.format(os.path.join(DOTA2_MATCHES, f'{match_id}.png'))
                 reports.append(
                     {
                         'message': m,
-                        'user'   : [p['uid'] for p in steamdata['DOTA2_matches_pool'][match_id]['players']]
+                        'user'   : [p['uid'] for p in match_info['players']]
                     }
                 )
                 todelete.append(match_id)
+        # 数据在生成比赛报告的过程中会被修改，需要重新读取
+        steamdata = loadjson(STEAM)
         for match_id in todelete:
             del steamdata['DOTA2_matches_pool'][match_id]
         dumpjson(steamdata, STEAM)
