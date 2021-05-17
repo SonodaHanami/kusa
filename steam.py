@@ -227,8 +227,6 @@ class Steam:
         memberdata = loadjson(MEMBER)
         steamdata = loadjson(STEAM)
         players = self.get_players()
-        matches = {}
-        replys = []
         status_changed = False
         sids = ','.join(str(p) for p in players.keys())
         j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
@@ -266,26 +264,24 @@ class Steam:
                     steamdata[qq]['last_change'] = now
 
                 # DOTA2最近比赛更新
-                last_DOTA2_match_ID = self.dota2.get_last_match_id(sid)
-                if last_DOTA2_match_ID > steamdata[qq]['last_DOTA2_match_ID']:
+                match_id, start_time = self.dota2.get_last_match(sid)
+                if match_id > steamdata[qq]['last_DOTA2_match_ID']:
                     status_changed = True
-                    steamdata[qq]['last_DOTA2_match_ID'] = last_DOTA2_match_ID
+                    steamdata[qq]['last_DOTA2_match_ID'] = match_id
                     player = {
                         'uid': qq,
                         'nickname': pname,
                         'steam_id3' : sid - 76561197960265728,
                         'steam_id64' : sid,
-                        'last_DOTA2_match_ID': last_DOTA2_match_ID
+                        'last_DOTA2_match_ID': match_id
                     }
-                    if matches.get(last_DOTA2_match_ID, 0) != 0:
-                        matches[last_DOTA2_match_ID].append(player)
+                    if steamdata['DOTA2_matches_pool'].get(match_id, 0) != 0:
+                        steamdata['DOTA2_matches_pool'][match_id]['players'].append(player)
                     else:
-                        matches.update({last_DOTA2_match_ID: [player]})
-
-        for match_id in matches:
-            steamdata['DOTA2_matches_pool'][match_id] = {
-                'players': matches[match_id]
-            }
+                        steamdata['DOTA2_matches_pool'][match_id] = {
+                            'start_time': start_time,
+                            'players': [player]
+                        }
 
         if status_changed:
             dumpjson(steamdata, STEAM)
@@ -321,12 +317,12 @@ class Steam:
 
 class Dota2:
     @staticmethod
-    def get_last_match_id(id64):
+    def get_last_match(id64):
         try:
-            match_id = requests.get(LAST_MATCH.format(APIKEY, id64)).json()["result"]["matches"][0]["match_id"]
-            return match_id
+            match = requests.get(LAST_MATCH.format(APIKEY, id64)).json()['result']['matches'][0]
+            return match['match_id'], match['start_time']
         except Exception as e:
-            return 0
+            return 0, 0
 
     # 根据slot判断队伍, 返回1为天辉, 2为夜魇
     @staticmethod
@@ -335,14 +331,6 @@ class Dota2:
             return 1
         else:
             return 2
-
-    def get_match_end_time(self, match_id):
-        try:
-            j = requests.get(MATCH_DETAILS.format(APIKEY, match_id)).json()['result']
-            return j['start_time'] + j['duration']
-        except Exception as e:
-            print(e)
-            return -1
 
     def request_match(self, match_id):
         j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
@@ -356,8 +344,13 @@ class Dota2:
             print('{} 比赛编号 {} 读取本地保存的分析结果'.format(datetime.now(), match_id))
             return loadjson(MATCH)
         steamdata = loadjson(STEAM)
-        match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
-        if match['players'][0]['damage_inflictor_received'] is None:
+        try:
+            match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
+            received = match['players'][0]['damage_inflictor_received']
+        except Exception as e:
+            print(match_id, e)
+            return {}
+        if received is None:
             # 比赛分析结果不完整
             job_id = steamdata['DOTA2_matches_pool'][match_id].get('job_id')
             if job_id:
@@ -673,13 +666,10 @@ class Dota2:
         reports = []
         todelete = []
         for match_id, match_info in steamdata['DOTA2_matches_pool'].items():
-            end_time = self.get_match_end_time(match_id)
             now = int(datetime.now().timestamp())
-            if end_time <= now - 86400 * 7:
+            if match_info['start_time'] <= now - 86400 * 7:
                 todelete.append(match_id)
                 continue
-            # if end_time >= now - 600:
-            #     continue
             m = self.generate_match_message(match_id)
             if isinstance(m, str):
                 self.generate_match_image(match_id)
