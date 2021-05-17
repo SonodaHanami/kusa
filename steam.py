@@ -76,11 +76,13 @@ class Steam:
 
         prm = re.match('(怎么)?绑定 *steam(.*)', msg, re.I)
         if prm:
-            usage = '使用方法：\n绑定Steam Steam好友代码（9位）（也可能是8位或10位）'
+            usage = '使用方法：\n绑定Steam Steam好友代码（8~10位）'
             try:
                 if prm[1]:
                     return usage
                 id3 = int(prm[2])
+                if id3 > 76561197960265728:
+                    id3 -= 76561197960265728
                 id64 = id3 + 76561197960265728
                 steamdata = loadjson(STEAM)
                 steamdata[user] = {
