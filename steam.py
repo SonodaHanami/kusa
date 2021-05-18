@@ -269,24 +269,29 @@ class Steam:
             # DOTA2最近比赛更新
             # print('{} 请求最近比赛更新 {}'.format(datetime.now(), sid))
             match_id, start_time = self.dota2.get_last_match(sid)
-            if match_id > steamdata[qq]['last_DOTA2_match_ID']:
-                status_changed = True
-                for qq in players[sid]:
+            new_match = False
+            for qq in players[sid]:
+                if match_id > steamdata[qq]['last_DOTA2_match_ID']:
+                    new_match = True
                     steamdata[qq]['last_DOTA2_match_ID'] = match_id
+            if new_match:
+                status_changed = True
                 player = {
-                    'uid': qq,
                     'nickname': pname,
                     'steam_id3' : sid - 76561197960265728,
                     'steam_id64' : sid,
-                    'last_DOTA2_match_ID': match_id
                 }
                 if steamdata['DOTA2_matches_pool'].get(match_id, 0) != 0:
                     steamdata['DOTA2_matches_pool'][match_id]['players'].append(player)
                 else:
                     steamdata['DOTA2_matches_pool'][match_id] = {
                         'start_time': start_time,
+                        'subscribers': [],
                         'players': [player]
                     }
+                for qq in players[sid]:
+                    if qq not in steamdata['DOTA2_matches_pool'][match_id]['subscribers']:
+                        steamdata['DOTA2_matches_pool'][match_id]['subscribers'].append(qq)
 
         if status_changed:
             dumpjson(steamdata, STEAM)
@@ -422,7 +427,6 @@ class Dota2:
                     i['xpm'] = j['xp_per_min']
                     i['damage_received'] = sum(j['damage_inflictor_received'].values())
                     break
-
         nicknames = '，'.join([players[i]['nickname'] for i in range(-len(players),-1)])
         if nicknames:
             nicknames += '和'
@@ -682,7 +686,7 @@ class Dota2:
                 reports.append(
                     {
                         'message': m,
-                        'user'   : [p['uid'] for p in match_info['players']]
+                        'user'   : match_info['subscribers']
                     }
                 )
                 todelete.append(match_id)
