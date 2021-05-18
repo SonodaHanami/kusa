@@ -20,6 +20,7 @@ BOT = CONFIG['BOT']
 ATBOT = f'[CQ:at,qq={BOT}]'
 UNKNOWN = None
 IDK = '我不知道'
+MAX_ATTEMPTS = 10
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 STEAM  = os.path.expanduser('~/.kusa/steam.json')
 IMAGES = os.path.expanduser('~/.kusa/images/')
@@ -285,6 +286,7 @@ class Steam:
                     steamdata['DOTA2_matches_pool'][match_id]['players'].append(player)
                 else:
                     steamdata['DOTA2_matches_pool'][match_id] = {
+                        'request_attempts': 0,
                         'start_time': start_time,
                         'subscribers': [],
                         'players': [player]
@@ -355,10 +357,14 @@ class Dota2:
             return loadjson(MATCH)
         steamdata = loadjson(STEAM)
         try:
+            if steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] > MAX_ATTEMPTS:
+                return requests.get(MATCH_DETAILS.format(APIKEY, match_id)).json()['result']
             match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
             received = match['players'][0]['damage_inflictor_received']
         except Exception as e:
             print('{} {} {}'.format(datetime.now(), match_id, e))
+            steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
+            dumpjson(steamdata, STEAM)
             return {}
         if received is None:
             # 比赛分析结果不完整
@@ -379,6 +385,7 @@ class Dota2:
                 # 不存在之前请求分析的job_id，重新请求一次，保存，下次再确认这个job是否已完成
                 job_id = self.request_match(match_id)
                 steamdata['DOTA2_matches_pool'][match_id]['job_id'] = job_id
+                steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
                 dumpjson(steamdata, STEAM)
                 return {}
         else:
@@ -425,7 +432,6 @@ class Dota2:
                     i['damage'] = j['hero_damage']
                     i['gpm'] = j['gold_per_min']
                     i['xpm'] = j['xp_per_min']
-                    i['damage_received'] = sum(j['damage_inflictor_received'].values())
                     break
         nicknames = '，'.join([players[i]['nickname'] for i in range(-len(players),-1)])
         if nicknames:
@@ -442,13 +448,11 @@ class Dota2:
                 f'看起来好像是{"赢" if win else "输"}了。'
 
         team_damage = 0
-        team_damage_received = 0
         team_kills = 0
         team_deaths = 0
         for i in match['players']:
             if self.get_team_by_slot(i['player_slot']) == team:
                 team_damage += i['hero_damage']
-                team_damage_received += sum(i['damage_inflictor_received'].values())
                 team_kills += i['kills']
                 team_deaths += i['deaths']
 
@@ -487,21 +491,19 @@ class Dota2:
             kda = i['kda']
             last_hits = i['last_hit']
             damage = i['damage']
-            damage_received = i['damage_received']
             kills, deaths, assists = i['dota2_kill'], i['dota2_death'], i['dota2_assist']
             gpm, xpm = i['gpm'], i['xpm']
 
             damage_rate = 0 if team_damage == 0 else (100 * (float(damage) / team_damage))
-            damage_received_rate = 0 if team_damage_received == 0 else (100 * (float(damage_received) / team_damage_received))
             participation = 0 if team_kills == 0 else (100 * float(kills + assists) / team_kills)
             deaths_rate = 0 if team_deaths == 0 else (100 * float(deaths) / team_deaths)
 
             tosend.append(
                 '{}使用{}, KDA: {:.2f}[{}/{}/{}], GPM/XPM: {}/{}, ' \
-                '补刀数: {}, 总伤害: {}({:.2f}%), 承受伤害: {}({:.2f}%), ' \
+                '补刀数: {}, 总伤害: {}({:.2f}%), ' \
                 '参战率: {:.2f}%, 参葬率: {:.2f}%' \
                 .format(nickname, hero, kda, kills, deaths, assists, gpm, xpm, last_hits,
-                        damage, damage_rate, damage_received, damage_received_rate,
+                        damage, damage_rate,
                         participation, deaths_rate)
             )
 
@@ -681,8 +683,9 @@ class Dota2:
                 continue
             m = self.generate_match_message(match_id)
             if isinstance(m, str):
-                self.generate_match_image(match_id)
-                m += '\n[CQ:image,file=file:///{}]'.format(os.path.join(DOTA2_MATCHES, f'{match_id}.png'))
+                if match_info['request_attempts'] <= MAX_ATTEMPTS:
+                    self.generate_match_image(match_id)
+                    m += '\n[CQ:image,file=file:///{}]'.format(os.path.join(DOTA2_MATCHES, f'{match_id}.png'))
                 reports.append(
                     {
                         'message': m,
