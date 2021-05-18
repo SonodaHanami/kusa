@@ -14,6 +14,7 @@ ATBOT = f'[CQ:at,qq={BOT}]'
 UNKNOWN = None
 IDK = '我不知道'
 taowa = '我俺你汝是谁爸妈爹娘父母爷奶姥'
+qunyou = '群友'
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 
 
@@ -171,6 +172,8 @@ class Whois:
         ''' obj未被占用，即object不存在对应的默认名字，现在obj是object '''
         if obj in taowa or True in [i in obj for i in taowa]:
             return '不准套娃'
+        if qunyou in obj:
+            return '唔得，大家都是群友'
         ''' sbj准备 '''
         if group not in data:
             data[group] = {}
