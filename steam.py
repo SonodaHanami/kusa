@@ -231,6 +231,7 @@ class Steam:
         players = self.get_players()
         status_changed = False
         sids = ','.join(str(p) for p in players.keys())
+        # print('{} 请求玩家状态更新 {}'.format(datetime.now(), sids))
         j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
         for p in j['response']['players']:
             sid = int(p['steamid'])
@@ -265,25 +266,27 @@ class Steam:
                     steamdata[qq]['gameextrainfo'] = cur_game
                     steamdata[qq]['last_change'] = now
 
-                # DOTA2最近比赛更新
-                match_id, start_time = self.dota2.get_last_match(sid)
-                if match_id > steamdata[qq]['last_DOTA2_match_ID']:
-                    status_changed = True
+            # DOTA2最近比赛更新
+            # print('{} 请求最近比赛更新 {}'.format(datetime.now(), sid))
+            match_id, start_time = self.dota2.get_last_match(sid)
+            if match_id > steamdata[qq]['last_DOTA2_match_ID']:
+                status_changed = True
+                for qq in players[sid]:
                     steamdata[qq]['last_DOTA2_match_ID'] = match_id
-                    player = {
-                        'uid': qq,
-                        'nickname': pname,
-                        'steam_id3' : sid - 76561197960265728,
-                        'steam_id64' : sid,
-                        'last_DOTA2_match_ID': match_id
+                player = {
+                    'uid': qq,
+                    'nickname': pname,
+                    'steam_id3' : sid - 76561197960265728,
+                    'steam_id64' : sid,
+                    'last_DOTA2_match_ID': match_id
+                }
+                if steamdata['DOTA2_matches_pool'].get(match_id, 0) != 0:
+                    steamdata['DOTA2_matches_pool'][match_id]['players'].append(player)
+                else:
+                    steamdata['DOTA2_matches_pool'][match_id] = {
+                        'start_time': start_time,
+                        'players': [player]
                     }
-                    if steamdata['DOTA2_matches_pool'].get(match_id, 0) != 0:
-                        steamdata['DOTA2_matches_pool'][match_id]['players'].append(player)
-                    else:
-                        steamdata['DOTA2_matches_pool'][match_id] = {
-                            'start_time': start_time,
-                            'players': [player]
-                        }
 
         if status_changed:
             dumpjson(steamdata, STEAM)
@@ -350,7 +353,7 @@ class Dota2:
             match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
             received = match['players'][0]['damage_inflictor_received']
         except Exception as e:
-            print(match_id, e)
+            print('{} {} {}'.format(datetime.now(), match_id, e))
             return {}
         if received is None:
             # 比赛分析结果不完整
