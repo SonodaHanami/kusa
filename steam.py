@@ -43,6 +43,7 @@ class Steam:
 
         mkdir_if_not_exists(DOTA2_MATCHES)
 
+        self.MINUTE = random.randint(0, 59)
         self.dota2 = Dota2()
 
 
@@ -85,14 +86,21 @@ class Steam:
                 if id3 > 76561197960265728:
                     id3 -= 76561197960265728
                 id64 = id3 + 76561197960265728
+                id3 = str(id3)
                 steamdata = loadjson(STEAM)
-                steamdata[user] = {
-                    "steam_id_short": id3,
-                    "steam_id_long": id64,
-                    "last_DOTA2_match_ID": 0,
-                    "last_change": 0,
-                    "gameextrainfo": "",
-                }
+                steamdata['subscribers'][user] = id3
+                if steamdata['players'].get(id3):
+                    steamdata['players'][id3]['subscribers'].append(user)
+                    steamdata['players'][id3]['subscribers'] = list(set(steamdata['players'][id3]['subscribers']))
+                else:
+                    steamdata['players'][id3] = {
+                        'steam_id64': id64,
+                        'subscribers': [user],
+                        'gameextrainfo': '',
+                        'last_change': 0,
+                        'last_DOTA2_action': 0,
+                        'last_DOTA2_match_id': 0,
+                    }
                 dumpjson(steamdata, STEAM)
                 return '绑定成功'
             except:
@@ -100,61 +108,16 @@ class Steam:
 
         if msg.lower() == '解除绑定steam':
             steamdata = loadjson(STEAM)
-            if steamdata.get(user):
-                del steamdata[user]
+            if steamdata['subscribers'].get(user):
+                id3 = steamdata['subscribers'][user]
+                steamdata['players'][id3]['subscribers'].remove(user)
+                if not steamdata['players'][id3]['subscribers']:
+                    del steamdata['players'][id3]
+                del steamdata['subscribers'][user]
                 dumpjson(steamdata, STEAM)
                 return '解除绑定成功'
             else:
                 return '没有找到你的绑定记录'
-
-        prm = re.match('查询(.+)的天梯段位$', msg)
-        if prm:
-            await self.api.send_group_msg(
-                    group_id=message['group_id'],
-                    message=f'正在查询',
-                )
-            name = prm[1].strip()
-            steamdata = loadjson(STEAM)
-            memberdata = loadjson(MEMBER)
-            if re.search('群友', name):
-                is_solo = False
-                players = self.get_players()
-                players2 = []
-                for p in players.keys():
-                    for q in players[p]:
-                        if q in memberdata[group]:
-                            players2.append(p - 76561197960265728)
-                players2 = list(set(players2))
-            else:
-                is_solo = True
-                wi = whois.Whois()
-                obj = wi.object_explainer(group, user, name)
-                steam_info = steamdata.get(obj['uid'])
-                if steam_info:
-                    sid = steam_info.get('steam_id_short')
-                    if not sid:
-                        return IDK
-                else: # steam_info is None
-                    if obj['uid'] == UNKNOWN:
-                        return f'我们群里有{name}吗？'
-                    return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
-                players2 = [sid]
-            ranks = []
-            replys = []
-            for sid in players2:
-                j = requests.get(OPENDOTA_PLAYERS.format(sid)).json()
-                rank = j.get('rank_tier') if j.get('rank_tier') else 0
-                if rank:
-                    ranks.append((j['profile']['personaname'], rank))
-            if ranks:
-                ranks = sorted(ranks, key=lambda i: i[1], reverse=True)
-                for name, rank in ranks:
-                    replys.append('{}现在是{}{}'.format(name, PLAYER_RANK[rank // 10], rank % 10 or ''))
-                if len(replys) > 2:
-                    replys.append('大家都有光明的未来！')
-                return '\n'.join(replys)
-            else:
-                return '查不到哟'
 
         prm = re.match('(.+)在(干|做|搞|整)(嘛|啥|哈|什么)', msg)
         if prm:
@@ -163,25 +126,22 @@ class Steam:
             memberdata = loadjson(MEMBER)
             if re.search('群友', name):
                 is_solo = False
-                players = self.get_players()
-                players2 = []
-                for p in players.keys():
-                    for q in players[p]:
-                        if q in memberdata[group]:
-                            players2.append(p)
-                players2 = list(set(players2))
-                sids = ','.join(str(p) for p in players2)
+                players_in_group = []
+                for qq, id3 in steamdata['subscribers'].items():
+                    if qq in memberdata[group]:
+                        players_in_group.append(steamdata['players'][id3]['steam_id64'])
+                players_in_group = list(set(players_in_group))
+                sids = ','.join(str(p) for p in players_in_group)
             else:
                 is_solo = True
                 wi = whois.Whois()
                 obj = wi.object_explainer(group, user, name)
-                steam_info = steamdata.get(obj['uid'])
+                steam_info = steamdata['players'].get(steamdata['subscribers'].get(obj['uid']))
                 if steam_info:
-                    sids = steam_info.get('steam_id_long')
+                    sids = steam_info.get('steam_id64')
                     if not sids:
                         return IDK
                 else: # steam_info is None
-                    # if obj['uid'] not in data[group]:
                     if obj['uid'] == UNKNOWN:
                         return f'我们群里有{name}吗？'
                     return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
@@ -200,6 +160,50 @@ class Steam:
                 return '群友都没在玩游戏'
             return IDK
 
+        prm = re.match('查询(.+)的天梯段位$', msg)
+        if prm:
+            await self.api.send_group_msg(
+                    group_id=message['group_id'],
+                    message=f'正在查询',
+                )
+            name = prm[1].strip()
+            steamdata = loadjson(STEAM)
+            memberdata = loadjson(MEMBER)
+            if re.search('群友', name):
+                is_solo = False
+                players_in_group = []
+                for qq, id3 in steamdata['subscribers'].items():
+                    if qq in memberdata[group]:
+                        players_in_group.append(id3)
+                players_in_group = list(set(players_in_group))
+            else:
+                is_solo = True
+                wi = whois.Whois()
+                obj = wi.object_explainer(group, user, name)
+                id3 = steamdata['subscribers'].get(obj['uid'])
+                if not id3:
+                    if obj['uid'] == UNKNOWN:
+                        return f'我们群里有{name}吗？'
+                    return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
+                players_in_group = [id3]
+            ranks = []
+            replys = []
+            for id3 in players_in_group:
+                j = requests.get(OPENDOTA_PLAYERS.format(id3)).json()
+                rank = j.get('rank_tier') if j.get('rank_tier') else 0
+                if rank:
+                    ranks.append((j['profile']['personaname'], rank))
+            if ranks:
+                ranks = sorted(ranks, key=lambda i: i[1], reverse=True)
+                for name, rank in ranks:
+                    replys.append('{}现在是{}{}'.format(name, PLAYER_RANK[rank // 10], rank % 10 or ''))
+                if len(replys) > 2:
+                    replys.append('大家都有光明的未来！')
+                return '\n'.join(replys)
+            else:
+                return '查不到哟'
+
+
     def jobs(self):
         trigger = CronTrigger(minute='*', second='30')
         job = (trigger, self.send_news_async)
@@ -216,9 +220,9 @@ class Steam:
             for g in groups:
                 if str(g) in msg['target_groups']:
                     sends.append({
-                        "message_type": "group",
-                        "group_id": g,
-                        "message": msg['message']
+                        'message_type': 'group',
+                        'group_id': g,
+                        'message': msg['message']
                     })
         return sends
 
@@ -230,57 +234,59 @@ class Steam:
         memberdata = loadjson(MEMBER)
         steamdata = loadjson(STEAM)
         players = self.get_players()
-        status_changed = False
         sids = ','.join(str(p) for p in players.keys())
+        now = int(datetime.now().timestamp())
         # print('{} 请求玩家状态更新 {}'.format(datetime.now(), sids))
         j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
         for p in j['response']['players']:
-            sid = int(p['steamid'])
-            for qq in players[sid]:
-                cur_game = p.get('gameextrainfo', '')
-                pre_game = steamdata[qq]['gameextrainfo']
-                pname    = p['personaname']
+            id64 = int(p['steamid'])
+            id3 = str(id64 - 76561197960265728)
+            cur_game = p.get('gameextrainfo', '')
+            pre_game = steamdata['players'][id3]['gameextrainfo']
+            pname    = p['personaname']
 
-                # 游戏状态更新
-                if cur_game != pre_game:
-                    status_changed = True
-                    now = int(datetime.now().timestamp())
-                    minutes = (now - steamdata[qq]['last_change']) // 60
-                    if cur_game:
-                        if pre_game:
-                            mt = f'{pname}玩了{minutes}分钟{pre_game}后，玩起了{cur_game}'
-                        else:
-                            mt = f'{pname}启动了{cur_game}'
-                        if datetime.now().hour <= 6:
-                            mt += '\n你他娘的不用睡觉吗？'
-                        if datetime.now().weekday() < 5 and datetime.now().hour in range(8, 18):
-                            mt += '\n见鬼，这群人都不用上班的吗'
-                        news.append({
-                            'message': mt,
-                            'user'   : [qq]
-                        })
+            # 游戏状态更新
+            if cur_game == 'Dota 2':
+                steamdata['players'][id3]['last_DOTA2_action'] = max(now, steamdata['players'][id3]['last_DOTA2_action'])
+            if cur_game != pre_game:
+                minutes = (now - steamdata['players'][id3]['last_change']) // 60
+                if cur_game:
+                    if pre_game:
+                        mt = f'{pname}玩了{minutes}分钟{pre_game}后，玩起了{cur_game}'
                     else:
-                        news.append({
-                            'message': f'{pname}退出了{pre_game}，本次游戏时长{minutes}分钟',
-                            'user'   : [qq]
-                        })
-                    steamdata[qq]['gameextrainfo'] = cur_game
-                    steamdata[qq]['last_change'] = now
+                        mt = f'{pname}启动了{cur_game}'
+                    if datetime.now().hour <= 6:
+                        mt += '\n你他娘的不用睡觉吗？'
+                    if datetime.now().weekday() < 5 and datetime.now().hour in range(8, 18):
+                        mt += '\n见鬼，这群人都不用上班的吗'
+                    news.append({
+                        'message': mt,
+                        'user'   : players[id64]
+                    })
+                else:
+                    news.append({
+                        'message': f'{pname}退出了{pre_game}，本次游戏时长{minutes}分钟',
+                        'user'   : players[id64]
+                    })
+                steamdata['players'][id3]['gameextrainfo'] = cur_game
+                steamdata['players'][id3]['last_change'] = now
 
             # DOTA2最近比赛更新
-            # print('{} 请求最近比赛更新 {}'.format(datetime.now(), sid))
-            match_id, start_time = self.dota2.get_last_match(sid)
+            # 只请求最近一天内有DOTA2活动的玩家的最近比赛，否则仅每小时请求一次
+            if steamdata['players'][id3]['last_DOTA2_action'] >= now - 86400 or datetime.now().minute == self.MINUTE:
+                # print('{} 请求最近比赛更新 {}'.format(datetime.now(), id64))
+                match_id, start_time = self.dota2.get_last_match(id64)
+            else:
+                match_id, start_time = (0, 0) # 将跳过之后的步骤
             new_match = False
-            for qq in players[sid]:
-                if match_id > steamdata[qq]['last_DOTA2_match_ID']:
-                    new_match = True
-                    steamdata[qq]['last_DOTA2_match_ID'] = match_id
+            if match_id > steamdata['players'][id3]['last_DOTA2_match_id']:
+                new_match = True
+                steamdata['players'][id3]['last_DOTA2_action'] = max(start_time, steamdata['players'][id3]['last_DOTA2_action'])
+                steamdata['players'][id3]['last_DOTA2_match_id'] = match_id
             if new_match:
-                status_changed = True
                 player = {
                     'nickname': pname,
-                    'steam_id3' : sid - 76561197960265728,
-                    'steam_id64' : sid,
+                    'steam_id3' : int(id3),
                 }
                 if steamdata['DOTA2_matches_pool'].get(match_id, 0) != 0:
                     steamdata['DOTA2_matches_pool'][match_id]['players'].append(player)
@@ -291,12 +297,11 @@ class Steam:
                         'subscribers': [],
                         'players': [player]
                     }
-                for qq in players[sid]:
+                for qq in players[id64]:
                     if qq not in steamdata['DOTA2_matches_pool'][match_id]['subscribers']:
                         steamdata['DOTA2_matches_pool'][match_id]['subscribers'].append(qq)
 
-        if status_changed:
-            dumpjson(steamdata, STEAM)
+        dumpjson(steamdata, STEAM)
 
         news += self.dota2.get_matches_report()
 
@@ -311,19 +316,10 @@ class Steam:
 
 
     def get_players(self):
-        memberdata = loadjson(MEMBER)
         steamdata  = loadjson(STEAM)
         players = {}
-        for g in memberdata:
-            for qq in memberdata.get(g):
-                steam_info = steamdata.get(qq)
-                if steam_info:
-                    sid = steam_info.get('steam_id_long')
-                    if sid:
-                        if sid not in players:
-                            players[sid] = [qq]
-                        else:
-                            players[sid].append(qq)
+        for p in steamdata['players'].values():
+            players[p['steam_id64']] = p['subscribers']
         return players
 
 
@@ -408,11 +404,11 @@ class Dota2:
             return None
         steamdata = loadjson(STEAM)
         players = steamdata['DOTA2_matches_pool'][match_id]['players']
-        start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
+        start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match['start_time']))
         duration = match['duration']
 
         # 比赛模式
-        mode_id = match["game_mode"]
+        mode_id = match['game_mode']
         mode = GAME_MODE[mode_id] if mode_id in GAME_MODE else '未知'
 
         lobby_id = match['lobby_type']
@@ -533,12 +529,12 @@ class Dota2:
         draw.text((501, 50), '地区', font=font, fill=(255, 255, 255))
         draw.text((650, 50), '比赛模式', font=font, fill=(255, 255, 255))
         draw.text((651, 50), '比赛模式', font=font, fill=(255, 255, 255))
-        start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(match['start_time']))
+        start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match['start_time']))
         duration = '{}分{}秒'.format(match['duration'] // 60, match['duration'] % 60)
         skill = SKILL_LEVEL[match['skill']] if match.get('skill') else 'Unknown'
         region_id = 'region_{}'.format(match.get('region'))
         region = REGION[region_id] if region_id in REGION else '未知'
-        mode_id = match["game_mode"]
+        mode_id = match['game_mode']
         mode = GAME_MODE[mode_id] if mode_id in GAME_MODE else '未知'
         lobby_id = match['lobby_type']
         lobby = LOBBY[lobby_id] if lobby_id in LOBBY else '未知'
@@ -594,7 +590,7 @@ class Dota2:
                 draw.text((145, 184 + slot * 70 + idx * 50), rank, font=font, fill=(128, 128, 128))
                 draw.text(
                     (145, 170 + slot * 70 + idx * 50),
-                    p.get('personaname') if p.get('personaname') else '匿名',
+                    p.get('personaname') if p.get('personaname') else '匿名玩家',
                     font=font,
                     fill=[(60, 144, 40), (156, 54, 40)][slot]
                 )
@@ -612,7 +608,7 @@ class Dota2:
                     else:
                         item_img = self.get_image('{}_lg.png'.format(ITEMS[p[item]]))
                     if item == 'item_neutral':
-                        ima = item_img.convert("RGBA")
+                        ima = item_img.convert('RGBA')
                         size = ima.size
                         r1 = min(size[0], size[1])
                         if size[0] != size[1]:
