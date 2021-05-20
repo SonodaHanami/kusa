@@ -136,6 +136,7 @@ class Steam:
                 is_solo = True
                 wi = whois.Whois()
                 obj = wi.object_explainer(group, user, name)
+                name = obj['name'] or name
                 steam_info = steamdata['players'].get(steamdata['subscribers'].get(obj['uid']))
                 if steam_info:
                     sids = steam_info.get('steam_id64')
@@ -144,7 +145,7 @@ class Steam:
                 else: # steam_info is None
                     if obj['uid'] == UNKNOWN:
                         return f'我们群里有{name}吗？'
-                    return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
+                    return f'{IDK}，因为{name}还没有绑定SteamID'
             replys = []
             j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
             for p in j['response']['players']:
@@ -180,11 +181,12 @@ class Steam:
                 is_solo = True
                 wi = whois.Whois()
                 obj = wi.object_explainer(group, user, name)
+                name = obj['name'] or name
                 id3 = steamdata['subscribers'].get(obj['uid'])
                 if not id3:
                     if obj['uid'] == UNKNOWN:
                         return f'我们群里有{name}吗？'
-                    return f'{IDK}，因为{obj["name"]}还没有绑定SteamID'
+                    return f'查不了，{name}可能还没有绑定SteamID'
                 players_in_group = [id3]
             ranks = []
             replys = []
@@ -202,6 +204,51 @@ class Steam:
                 return '\n'.join(replys)
             else:
                 return '查不到哟'
+
+        prm = re.match('查询(.+)的(常用英雄|英雄池)$', msg)
+        if prm:
+            name = prm[1]
+            item = prm[2]
+            if name == '群友':
+                return '唔得，一个一个查'
+            steamdata = loadjson(STEAM)
+            memberdata = loadjson(MEMBER)
+            wi = whois.Whois()
+            obj = wi.object_explainer(group, user, name)
+            name = obj['name'] or name
+            id3 = steamdata['subscribers'].get(obj['uid'])
+            if not id3:
+                if obj['uid'] == UNKNOWN:
+                    return f'我们群里有{name}吗？'
+                return f'查不了，{name}可能还没有绑定SteamID'
+            j = requests.get(OPENDOTA_PLAYERS.format(id3) + '/heroes').json()
+            if item == '常用英雄':
+                hero_stat = []
+                if j[0]['games'] == 0:
+                    return f'这个{name}是不是什么都没玩过啊'
+                for i in range(5):
+                    if j[i]['games'] > 0:
+                        hero = HEROES_CHINESE[int(j[i]["hero_id"])][0]
+                        games = j[i]["games"]
+                        win = j[i]["win"]
+                        win_rate = 100 * win / games
+                        hero_stat.append(f'{games}局{hero}，赢了{win}局，胜率{win_rate:.2f}%')
+                    else:
+                        break
+                return f'{name}玩得最多的{len(hero_stat)}个英雄：\n' + '\n'.join(hero_stat)
+            if item == '英雄池':
+                hero_num = 0
+                hero_ge20 = 0
+                if j[0]['games'] == 0:
+                    return f'这个{name}什么都没玩过啊哪来的英雄池'
+                for i in range(len(j)):
+                    if j[i]['games'] > 0:
+                        hero_num += 1
+                        if j[i]['games'] >= 20:
+                            hero_ge20 += 1
+                    else:
+                        break
+                return f'{name}玩过{hero_num}个英雄，其中大于等于20局的有{hero_ge20}个'
 
 
     def jobs(self):
@@ -490,9 +537,9 @@ class Dota2:
             kills, deaths, assists = i['dota2_kill'], i['dota2_death'], i['dota2_assist']
             gpm, xpm = i['gpm'], i['xpm']
 
-            damage_rate = 0 if team_damage == 0 else (100 * (float(damage) / team_damage))
-            participation = 0 if team_kills == 0 else (100 * float(kills + assists) / team_kills)
-            deaths_rate = 0 if team_deaths == 0 else (100 * float(deaths) / team_deaths)
+            damage_rate = 0 if team_damage == 0 else (100 * damage / team_damage)
+            participation = 0 if team_kills == 0 else (100 * (kills + assists) / team_kills)
+            deaths_rate = 0 if team_deaths == 0 else (100 * deaths / team_deaths)
 
             tosend.append(
                 '{}使用{}, KDA: {:.2f}[{}/{}/{}], GPM/XPM: {}/{}, ' \
