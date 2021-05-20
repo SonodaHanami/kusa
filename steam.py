@@ -44,6 +44,7 @@ class Steam:
         mkdir_if_not_exists(DOTA2_MATCHES)
 
         self.MINUTE = random.randint(0, 59)
+        print('Steam初始化，MINUTE={}'.format(self.MINUTE))
         self.dota2 = Dota2()
 
 
@@ -319,8 +320,8 @@ class Steam:
                 steamdata['players'][id3]['last_change'] = now
 
             # DOTA2最近比赛更新
-            # 只请求最近一天内有DOTA2活动的玩家的最近比赛，否则仅每小时请求一次
-            if steamdata['players'][id3]['last_DOTA2_action'] >= now - 86400 or datetime.now().minute == self.MINUTE:
+            # 每分钟请求时只请求最近3小时内有DOTA2活动的玩家的最近比赛，其余玩家的比赛仅每小时请求一次
+            if steamdata['players'][id3]['last_DOTA2_action'] >= now - 10800 or datetime.now().minute == self.MINUTE:
                 # print('{} 请求最近比赛更新 {}'.format(datetime.now(), id64))
                 match_id, start_time = self.dota2.get_last_match(id64)
             else:
