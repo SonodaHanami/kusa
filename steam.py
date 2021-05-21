@@ -683,6 +683,20 @@ class Dota2:
                     else:
                         item_img = item_img.resize((40, 30), Image.ANTIALIAS)
                         image.paste(item_img, (470 + 42 * ITEM_SLOTS.index(item), 170 + slot * 70 + idx * 50))
+                        purchase_time = None
+                        for pl in p['purchase_log']:
+                            if p[item] == 0:
+                                continue
+                            if pl['key'] == ITEMS[p[item]]:
+                                purchase_time = pl['time']
+                                pl['key'] += '_'
+                                break
+                        if purchase_time:
+                            draw.text(
+                                (474 + 42 * ITEM_SLOTS.index(item), 198 + slot * 70 + idx * 50),
+                                '{:0>2}:{:0>2}'.format(purchase_time // 60, purchase_time % 60) if purchase_time > 0 else '-{:0>2}:{:0>2}'.format(-purchase_time // 60, -purchase_time % 60),
+                                font=font, fill=(128, 128, 128)
+                            )
 
                 s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
                 scepter_img = self.get_image(f'scepter_{s}.png')
