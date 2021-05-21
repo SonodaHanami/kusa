@@ -106,7 +106,7 @@ class Kusa:
         group = str(message.get('group_id', ''))
         user = str(message.get('user_id', ''))
 
-        if user != ADMIN and message['sender']['role'] == 'member':
+        if user != ADMIN and message['message_type'] == 'group' and message['sender']['role'] == 'member':
             return None
         if msg.startswith('!') or msg.startswith('！'):
             msg = msg[1:]
