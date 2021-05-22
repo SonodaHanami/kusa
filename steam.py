@@ -1,10 +1,8 @@
 import json
 import os
 import random
-import pygtrie
 import re
 import requests
-import sys
 import time
 from datetime import datetime, timedelta
 from apscheduler.triggers.cron import CronTrigger
@@ -558,8 +556,8 @@ class Dota2:
         if not match:
             return None
         image = Image.new('RGB', (800, 800), (255, 255, 255))
-        font = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 12)
-        font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/MSYH.TTC'), 18)
+        font = ImageFont.truetype(os.path.expanduser('~/.kusa/fonts/MSYH.TTC'), 12)
+        font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/fonts/MSYH.TTC'), 18)
         draw = ImageDraw.Draw(image)
         draw.rectangle((0, 0, 800, 100), 'black')
         title = '比赛 ' + str(match['match_id'])
