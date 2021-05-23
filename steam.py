@@ -648,6 +648,7 @@ class Dota2:
                 draw.text((370, 184 + slot * 70 + idx * 50), kda, font=font, fill=(0, 0, 0))
 
                 image.paste(Image.new('RGB', (252, 32), (192, 192, 192)), (469, 169 + slot * 70 + idx * 50))
+                p['purchase_log'].reverse()
                 for item in ITEM_SLOTS:
                     if p[item] == 0:
                         item_img = Image.new('RGB', (40, 30), (128, 128, 128))
