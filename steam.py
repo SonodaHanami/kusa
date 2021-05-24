@@ -99,6 +99,7 @@ class Steam:
                         'last_change': 0,
                         'last_DOTA2_action': 0,
                         'last_DOTA2_match_id': 0,
+                        'DOTA2_rank_tier': 0,
                     }
                 dumpjson(steamdata, STEAM)
                 return '绑定成功'
@@ -190,8 +191,7 @@ class Steam:
             ranks = []
             replys = []
             for id3 in players_in_group:
-                j = requests.get(OPENDOTA_PLAYERS.format(id3)).json()
-                rank = j.get('rank_tier') if j.get('rank_tier') else 0
+                rank = self.dota2.get_rank_tier(id3)
                 if rank:
                     ranks.append((j['profile']['personaname'], rank))
             if ranks:
@@ -347,6 +347,30 @@ class Steam:
                     if qq not in steamdata['DOTA2_matches_pool'][match_id]['subscribers']:
                         steamdata['DOTA2_matches_pool'][match_id]['subscribers'].append(qq)
 
+            # 每3小时请求一次天梯段位
+            if datetime.now().hour % 3 == 0 and datetime.now().minute == self.MINUTE:
+                cur_rank = self.dota2.get_rank_tier(id3)
+                pre_rank = steamdata['players'][id3]['DOTA2_rank_tier']
+                if cur_rank != pre_rank:
+                    if cur_rank:
+                        if pre_rank:
+                            word = '升' if cur_rank > pre_rank else '掉'
+                            mt = '{}从{}{}{}到了{}{}'.format(
+                                pname,
+                                PLAYER_RANK[pre_rank // 10], pre_rank % 10 or '',
+                                word,
+                                PLAYER_RANK[cur_rank // 10], cur_rank % 10 or ''
+                            )
+                        else:
+                            mt = '{}达到了{}{}'.format(pname, PLAYER_RANK[cur_rank // 10], cur_rank % 10 or '')
+                        news.append({
+                            'message': mt,
+                            'user'   : players[id64]
+                        })
+                    else:
+                        pass
+                    steamdata['players'][id3]['DOTA2_rank_tier'] = cur_rank
+
         dumpjson(steamdata, STEAM)
 
         news += self.dota2.get_matches_report()
@@ -377,6 +401,15 @@ class Dota2:
             return match['match_id'], match['start_time']
         except Exception as e:
             return 0, 0
+
+    @staticmethod
+    def get_rank_tier(id3):
+        try:
+            j = requests.get(OPENDOTA_PLAYERS.format(id3)).json()
+            rank = j.get('rank_tier') if j.get('rank_tier') else 0
+            return rank
+        except Exception as e:
+            return 0
 
     # 根据slot判断队伍, 返回1为天辉, 2为夜魇
     @staticmethod
