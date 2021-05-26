@@ -724,10 +724,11 @@ class Dota2:
                                 pl['key'] += '_'
                                 break
                         if purchase_time:
+                            draw.rectangle((470 + 42 * ITEM_SLOTS.index(item), 189 + slot * 70 + idx * 50, 509 + 42 * ITEM_SLOTS.index(item), 199 + slot * 70 + idx * 50), fill=(50, 50, 50))
                             draw.text(
-                                (474 + 42 * ITEM_SLOTS.index(item), 198 + slot * 70 + idx * 50),
-                                '{:0>2}:{:0>2}'.format(purchase_time // 60, purchase_time % 60) if purchase_time > 0 else '-{:0>2}:{:0>2}'.format(-purchase_time // 60, -purchase_time % 60),
-                                font=font, fill=(128, 128, 128)
+                                (474 + 42 * ITEM_SLOTS.index(item), 186 + slot * 70 + idx * 50),
+                                '{:0>2}:{:0>2}'.format(purchase_time // 60, purchase_time % 60) if purchase_time > 0 else '-{}:{:0>2}'.format(-purchase_time // 60, -purchase_time % 60),
+                                font=font, fill=(192, 192, 192)
                             )
 
                 s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
