@@ -15,7 +15,7 @@ from . import (
 CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
 KUSA_JPG = '[CQ:image,file=b7e3ba3500b150db483fc9b7f69014cb.image]' # 草.jpg
-PREVMSG = os.path.expanduser("~/.kusa/prevmsg.json")
+PREVMSG = os.path.expanduser('~/.kusa/prevmsg.json')
 
 MAX_MESSAGE_NUM = 5
 MIN_TIME_TO_REPEAT = 2
@@ -138,7 +138,7 @@ class Kusa:
         msg = message['raw_message'].strip().lower()
         group = str(message.get('group_id', ''))
         user = str(message.get('user_id', ''))
-        nickname = message["sender"].get("nickname", "")
+        nickname = message['sender'].get('card', '') or message['sender'].get('nickname', '')
 
         if group not in self.joker_enabled:
             return None
