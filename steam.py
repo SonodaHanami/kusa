@@ -78,6 +78,7 @@ class Steam:
         prm = re.match('(怎么)?绑定 *steam(.*)', msg, re.I)
         if prm:
             usage = '使用方法：\n绑定Steam Steam好友代码（8~10位）'
+            success = '绑定成功'
             try:
                 if prm[1]:
                     return usage
@@ -87,6 +88,14 @@ class Steam:
                 id64 = id3 + 76561197960265728
                 id3 = str(id3)
                 steamdata = loadjson(STEAM)
+                # 之前已经绑定过
+                if steamdata['subscribers'].get(user):
+                    old_id3 = steamdata['subscribers'][user]
+                    if old_id3 != id3:
+                        steamdata['players'][old_id3]['subscribers'].remove(user)
+                        if not steamdata['players'][old_id3]['subscribers']:
+                            del steamdata['players'][old_id3]
+                        success += f'\n已自动解除绑定{old_id3}'
                 steamdata['subscribers'][user] = id3
                 if steamdata['players'].get(id3):
                     steamdata['players'][id3]['subscribers'].append(user)
@@ -102,7 +111,7 @@ class Steam:
                         'DOTA2_rank_tier': 0,
                     }
                 dumpjson(steamdata, STEAM)
-                return '绑定成功'
+                return success
             except:
                 return usage
 
