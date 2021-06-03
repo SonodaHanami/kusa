@@ -683,8 +683,10 @@ class Dota2:
                     fill=[(60, 144, 40), (156, 54, 40)][slot]
                 )
                 net = '{:,}'.format(p['net_worth'])
+                damage_to_net = '({:.2f})'.format(p['hero_damage'] / p['net_worth'] if p['net_worth'] else 0)
                 draw.text((146, 197 + slot * 70 + idx * 60), net, font=font, fill=(0, 0, 0))
                 draw.text((145, 196 + slot * 70 + idx * 60), net, font=font, fill=(255, 255, 0))
+                draw.text((145, 210 + slot * 70 + idx * 60), damage_to_net, font=font, fill=(0, 0, 0))
 
                 kda = '{}/{}/{}'.format(p['kills'], p['deaths'], p['assists'])
                 draw.text((370, 170 + slot * 70 + idx * 60), kda, font=font, fill=(0, 0, 0))
