@@ -688,7 +688,7 @@ class Dota2:
 
                 kda = '{}/{}/{}'.format(p['kills'], p['deaths'], p['assists'])
                 draw.text((370, 170 + slot * 70 + idx * 60), kda, font=font, fill=(0, 0, 0))
-                kda = 'KDA:{:.2f}'.format(
+                kda = 'KDA: {:.2f}'.format(
                     (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths'])
                 draw.text((370, 184 + slot * 70 + idx * 60), kda, font=font, fill=(0, 0, 0))
 
@@ -760,9 +760,10 @@ class Dota2:
                 damage_received = sum(p['damage_inflictor_received'].values())
                 damage_received_rate = 0 if team_damage_received == 0 else 100 * (damage_received / team_damage_received)
                 draw.text((210, 184 + slot * 70 + idx * 60), '造成伤害: {:,}({:.2f}%)'.format(p['hero_damage'], damage_rate), font=font, fill=(0, 0, 0))
-                draw.text((210, 198 + slot * 70 + idx * 60), '建筑伤害: {:,}'.format(p['tower_damage']), font=font, fill=(0, 0, 0))
-                draw.text((210, 212 + slot * 70 + idx * 60), '承受伤害: {:,}({:.2f}%)'.format(damage_received, damage_received_rate), font=font, fill=(0, 0, 0))
+                draw.text((210, 198 + slot * 70 + idx * 60), '承受伤害: {:,}({:.2f}%)'.format(damage_received, damage_received_rate), font=font, fill=(0, 0, 0))
+                draw.text((210, 212 + slot * 70 + idx * 60), '建筑伤害: {:,}'.format(p['tower_damage']), font=font, fill=(0, 0, 0))
                 draw.text((370, 198 + slot * 70 + idx * 60), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
+                draw.text((370, 212 + slot * 70 + idx * 60), '治疗量: {:,}'.format(p['hero_healing']), font=font, fill=(0, 0, 0))
 
             draw.text((550, 140 + slot * 370), f'杀敌 {team_kills}', font=font, fill=(128, 128, 128))
             draw.text((610, 140 + slot * 370), f'总经济 {team_gold}', font=font, fill=(128, 128, 128))
