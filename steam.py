@@ -767,9 +767,10 @@ class Dota2:
                 draw.text((370, 198 + slot * 70 + idx * 60), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
                 draw.text((370, 212 + slot * 70 + idx * 60), '治疗量: {:,}'.format(p['hero_healing']), font=font, fill=(0, 0, 0))
 
-            draw.text((550, 140 + slot * 370), f'杀敌 {team_kills}', font=font, fill=(128, 128, 128))
-            draw.text((610, 140 + slot * 370), f'总经济 {team_gold}', font=font, fill=(128, 128, 128))
-            draw.text((700, 140 + slot * 370), f'总经验 {team_exp}', font=font, fill=(128, 128, 128))
+            draw.text((470, 140 + slot * 370), f'杀敌 {team_kills}', font=font, fill=(128, 128, 128))
+            draw.text((530, 140 + slot * 370), f'总伤害 {team_damage}', font=font, fill=(128, 128, 128))
+            draw.text((620, 140 + slot * 370), f'总经济 {team_gold}', font=font, fill=(128, 128, 128))
+            draw.text((710, 140 + slot * 370), f'总经验 {team_exp}', font=font, fill=(128, 128, 128))
 
         draw.text(
             (10, 880),
