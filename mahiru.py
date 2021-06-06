@@ -34,19 +34,20 @@ class Mahiru:
 
     async def mahiru(self):
         mahirudata = loadjson(MAHIRU)
-        nowstr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        dtstr = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         for j in mahirudata['jobs']:
             if self.check(j['condition']):
+                msg = re.sub('\$DATETIME', dtstr, j['message'])
                 if j['type'] == 'private':
                     await self.api.send_private_msg(
                         user_id=j['target'],
-                        message=j['message'],
+                        message=msg,
                     )
                 if j['type'] == 'group':
                     await self.api.send_group_msg(
                         group_id=j['target'],
-                        message=j['message'],
+                        message=msg,
                     )
 
     def check(self, condition):
