@@ -200,9 +200,9 @@ class Steam:
             ranks = []
             replys = []
             for id3 in players_in_group:
-                rank = self.dota2.get_rank_tier(id3)
+                name, rank = self.dota2.get_rank_tier(id3)
                 if rank:
-                    ranks.append((j['profile']['personaname'], rank))
+                    ranks.append((name, rank))
             if ranks:
                 ranks = sorted(ranks, key=lambda i: i[1], reverse=True)
                 for name, rank in ranks:
@@ -358,7 +358,7 @@ class Steam:
 
             # 每3小时请求一次天梯段位
             if datetime.now().hour % 3 == 0 and datetime.now().minute == self.MINUTE:
-                cur_rank = self.dota2.get_rank_tier(id3)
+                pname, cur_rank = self.dota2.get_rank_tier(id3)
                 pre_rank = steamdata['players'][id3]['DOTA2_rank_tier']
                 if cur_rank != pre_rank:
                     if cur_rank:
@@ -415,10 +415,11 @@ class Dota2:
     def get_rank_tier(id3):
         try:
             j = requests.get(OPENDOTA_PLAYERS.format(id3)).json()
+            name = j['profile']['personaname']
             rank = j.get('rank_tier') if j.get('rank_tier') else 0
-            return rank
+            return name, rank
         except Exception as e:
-            return 0
+            return '', 0
 
     # 根据slot判断队伍, 返回1为天辉, 2为夜魇
     @staticmethod
