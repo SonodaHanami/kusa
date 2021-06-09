@@ -114,7 +114,7 @@ class Github:
             force_pushed.update(force)
 
         print('{} 共查询到{}个提交，其中有{}个更新'.format(
-                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
                 commit_count,
                 len(updates)
             )
@@ -145,7 +145,7 @@ class Github:
     def get_commit_update(self, repo):
         githubdata = loadjson(GITHUB)
         force = {}
-        print('{} 查询Github更新：{}'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S'), repo))
+        print('{} 查询Github更新：{}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), repo))
         commits = self.get_repo_commits(repo)
         count = len(commits)
         if not commits:

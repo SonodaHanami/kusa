@@ -291,7 +291,7 @@ class Steam:
         players = self.get_players()
         sids = ','.join(str(p) for p in players.keys())
         now = int(datetime.now().timestamp())
-        # print('{} 请求玩家状态更新 {}'.format(datetime.now(), sids))
+        # print('{} 请求玩家状态更新 {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), sids))
         j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
         for p in j['response']['players']:
             id64 = int(p['steamid'])
@@ -432,13 +432,13 @@ class Dota2:
     def request_match(self, match_id):
         j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
         job_id = j['job']['jobId']
-        print('{} 比赛编号 {} 请求OPENDOTA分析，job_id: {}'.format(datetime.now(), match_id, job_id))
+        print('{} 比赛编号 {} 请求OPENDOTA分析，job_id: {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id, job_id))
         return job_id
 
     def get_match(self, match_id):
         MATCH = os.path.join(DOTA2_MATCHES, f'{match_id}.json')
         if os.path.exists(MATCH):
-            print('{} 比赛编号 {} 读取本地保存的分析结果'.format(datetime.now(), match_id))
+            print('{} 比赛编号 {} 读取本地保存的分析结果'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id))
             return loadjson(MATCH)
         steamdata = loadjson(STEAM)
         try:
@@ -447,7 +447,7 @@ class Dota2:
             match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
             received = match['players'][0]['damage_inflictor_received']
         except Exception as e:
-            print('{} {} {}'.format(datetime.now(), match_id, e))
+            print('{} {} {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id, e))
             steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
             dumpjson(steamdata, STEAM)
             return {}
@@ -459,7 +459,7 @@ class Dota2:
                 j = requests.get(OPENDOTA_REQUEST.format(job_id)).json()
                 if j:
                     # 查询返回了数据，说明job仍未完成
-                    print('{} job_id {} 仍在处理中'.format(datetime.now(), job_id))
+                    print('{} job_id {} 仍在处理中'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), job_id))
                     return {}
                 else:
                     # job完成了，可以删掉
@@ -475,7 +475,7 @@ class Dota2:
                 return {}
         else:
             # 比赛分析结果完整了
-            print('{} 比赛编号 {} 从OPENDOTA获取到分析结果'.format(datetime.now(), match_id))
+            print('{} 比赛编号 {} 从OPENDOTA获取到分析结果'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id))
             dumpjson(match, MATCH)
             return match
 
