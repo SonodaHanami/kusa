@@ -37,6 +37,14 @@ GAME_MODE = {
     26: '王座之间 三人南',
 }
 
+PLAYER_RANK = {
+    1: '初心',
+    2: '雀士',
+    3: '雀杰',
+    4: '雀豪',
+    5: '雀圣',
+    6: '魂天',
+}
 
 class Majiang:
     def __init__(self, **kwargs):
@@ -81,7 +89,7 @@ class Majiang:
         now = int(datetime.now().timestamp())
         for p in madata['players']:
             for m in ['3', '4']:
-                if madata['players'][p]['last_start_time'][m] >= now - 1200 or datetime.now().minute % 10 != 0:
+                if madata['players'][p][m]['last_start_time'] >= now - 1200 or datetime.now().minute % 1 != 0:
                     continue
                 try:
                     print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '请求雀魂玩家最近比赛')
@@ -95,9 +103,9 @@ class Majiang:
                     continue
 
                 new_match = False
-                if j[0]['startTime'] > madata['players'][p]['last_start_time'][m]:
+                if j[0]['startTime'] > madata['players'][p][m]['last_start_time']:
                     print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '发现最近比赛更新！')
-                    madata['players'][p]['last_start_time'][m] = j[0]['startTime']
+                    madata['players'][p][m]['last_start_time'] = j[0]['startTime']
                     match = j[0]
                     tosend = []
                     start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match['startTime']))
@@ -128,13 +136,43 @@ class Majiang:
                             mp_result.append('飞了！')
                         tosend.append(' '.join(mp_result))
 
-                    m = '\n'.join(tosend)
+                    msg = '\n'.join(tosend)
                     news.append(
                         {
-                            'message': m,
+                            'message': msg,
                             'user'   : madata['players'][p]['subscribers']
                         }
                     )
+
+                    # 只有比赛更新才会有段位变动
+                    cur_rank = 0
+                    pname = '不知道是谁'
+                    for mp in match['players']:
+                        if str(mp['accountId']) == p:
+                            cur_rank = mp['level'] // 100 % 10 * 10 + mp['level'] % 10
+                            pname = mp['nickname']
+                            break
+                    pre_rank = madata['players'][p][m]['rank']
+                    if cur_rank != pre_rank:
+                        if cur_rank:
+                            if pre_rank:
+                                word = '升' if cur_rank > pre_rank else '掉'
+                                msg = '{}从{}{}{}到了{}{}'.format(
+                                    pname,
+                                    PLAYER_RANK[pre_rank // 10], pre_rank % 10 or '',
+                                    word,
+                                    PLAYER_RANK[cur_rank // 10], cur_rank % 10 or ''
+                                )
+                            else:
+                                msg = '{}达到了{}{}'.format(pname, PLAYER_RANK[cur_rank // 10], cur_rank % 10 or '')
+                            news.append({
+                                'message': msg,
+                                'user'   : madata['players'][p]['subscribers']
+                            })
+                        else:
+                            pass
+                        madata['players'][p][m]['rank'] = cur_rank
+
                 else:
                     print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现最近比赛更新')
 
