@@ -17,7 +17,7 @@ class Roll:
         user = str(message.get("user_id", 0))
         replys = []
 
-        prm = re.match('([!\.]?roll|[!\.]r)(.*)', msg)
+        prm = re.match('([/!\.]?roll|[/!\.]r)(.*)', msg)
         if prm:
             try:
                 msg = prm[2].strip()
@@ -54,7 +54,7 @@ class Roll:
             except Exception as e:
                 return 'Roll error: {}'.format(e)
 
-        prm = re.match('([!\.]set)(.*)', msg)
+        prm = re.match('([/!\.]set)(.*)', msg)
         if prm:
             msg = prm[2].strip()
             if not msg:
