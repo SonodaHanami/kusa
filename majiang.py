@@ -46,6 +46,13 @@ PLAYER_RANK = {
     6: '魂天',
 }
 
+ZONE_TAG = {
+    0: '',
+    1: 'Ⓒ',
+    2: 'Ⓙ',
+    3: 'Ⓔ',
+}
+
 class Majiang:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
@@ -79,6 +86,18 @@ class Majiang:
                     })
         return sends
 
+    def get_account_zone(self, account_id):
+        if not account_id:
+            return 0
+        prefix = account_id >> 23
+        if 0 <= prefix <= 6:
+            return 1
+        if 7 <= prefix <= 12:
+            return 2
+        if 13 <= prefix <= 15:
+            return 3
+        return 0
+
     async def get_news_async(self):
         '''
         返回最新消息
@@ -89,17 +108,17 @@ class Majiang:
         now = int(datetime.now().timestamp())
         for p in madata['players']:
             for m in ['3', '4']:
-                if madata['players'][p][m]['last_start_time'] >= now - 1200 or datetime.now().minute % 1 != 0:
+                if madata['players'][p][m]['last_start_time'] >= now - 1200 or datetime.now().minute % 10 != 0:
                     continue
                 try:
-                    print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '请求雀魂玩家最近比赛')
+                    # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '请求雀魂玩家最近比赛')
                     end_of_today = int(datetime.now().replace(hour=23, minute=59, second=59).timestamp()) * 1000 + 999
                     j = requests.get(API_URL[m].format(p, end_of_today)).json()
                 except Exception as e:
                     print(e)
                     continue
                 if not j:
-                    print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现任何比赛')
+                    # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现任何比赛')
                     continue
 
                 new_match = False
@@ -113,9 +132,9 @@ class Majiang:
                     mode = GAME_MODE.get(match['modeId'], '未知')
                     subscriber = '不知道是谁'
                     for mp in match['players']:
+                        mp['nickname'] = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                         if str(mp['accountId']) == p:
                             subscriber = mp['nickname']
-                            break
                     tosend.append('雀魂雷达动叻！')
                     tosend.append('{} 打了一局 [{}]'.format(subscriber, mode))
                     tosend.append('开始时间: {}'.format(start_time))
@@ -174,7 +193,8 @@ class Majiang:
                         madata['players'][p][m]['rank'] = cur_rank
 
                 else:
-                    print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现最近比赛更新')
+                    # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现最近比赛更新')
+                    pass
 
         dumpjson(madata, MAJIANG)
 
