@@ -65,7 +65,7 @@ class Majiang:
         return None
 
     def jobs(self):
-        trigger = CronTrigger(minute='*', second='50')
+        trigger = CronTrigger(minute='*/10', second='50')
         job = (trigger, self.send_news_async)
         return (job,)
 
@@ -106,9 +106,10 @@ class Majiang:
         madata = loadjson(MAJIANG)
         memberdata = loadjson(MEMBER)
         now = int(datetime.now().timestamp())
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '雀魂雷达开始扫描')
         for p in madata['players']:
             for m in ['3', '4']:
-                if madata['players'][p][m]['last_start_time'] >= now - 1200 or datetime.now().minute % 10 != 0:
+                if madata['players'][p][m]['last_start_time'] >= now - 1200:
                     continue
                 try:
                     # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '请求雀魂玩家最近比赛')
@@ -176,14 +177,20 @@ class Majiang:
                         if cur_rank:
                             if pre_rank:
                                 word = '升' if cur_rank > pre_rank else '掉'
-                                msg = '{}从{}{}{}到了{}{}'.format(
+                                msg = '{} 的{}段位从{}{}{}到了{}{}'.format(
                                     pname,
+                                    '零一二三四'[int(m)] + '麻',
                                     PLAYER_RANK[pre_rank // 10], pre_rank % 10 or '',
                                     word,
                                     PLAYER_RANK[cur_rank // 10], cur_rank % 10 or ''
                                 )
                             else:
-                                msg = '{}达到了{}{}'.format(pname, PLAYER_RANK[cur_rank // 10], cur_rank % 10 or '')
+                                msg = '{} 的{}段位达到了{}{}'.format(
+                                    pname,
+                                    '零一二三四'[int(m)] + '麻',
+                                    PLAYER_RANK[cur_rank // 10],
+                                    cur_rank % 10 or ''
+                                )
                             news.append({
                                 'message': msg,
                                 'user'   : madata['players'][p]['subscribers']
