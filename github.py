@@ -35,6 +35,8 @@ githubdata = {
 }
 '''
 
+COMMITS_ATOM = 'https://github.com/{}/commits.atom'
+
 class Github:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
@@ -176,24 +178,21 @@ class Github:
 
 
     def get_repo_commits(self, repo):
-        repo_url = f'https://github.com/{repo}/commits/'
+        repo_url = COMMITS_ATOM.format(repo)
         r = requests.get(repo_url)
         soup = BeautifulSoup(r.text, "lxml")
-        latest_authors = soup.find_all(class_='user-mention')
+        latest_commits = soup.find_all('entry')
         commits = []
-        for i in range(len(latest_authors)):
-            author = latest_authors[i]
-            dt = author.find_parent().find('relative-time').get('datetime')
-            from datetime import datetime, timedelta
-            li = author.find_parent('li')
-            msgs = li.find('p', class_='mb-1').find_all('a')
-            msg = ''.join([str(m.string) for m in msgs])
-            hash = re.match('.*/(.*)', li.find('a', class_='f6').get('href'))[1]
+        for lc in latest_commits:
+            author = lc.find('author').find('name').string
+            dt = datetime.strptime(lc.find('updated').string, '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=8),
+            msg = lc.find('title').string.strip()
+            hash = re.match('.*/(.*)', lc.find('link').get('href'))[1]
             commits.append({
                 'repo'  : repo,
-                'author': str(author.string),
+                'author': author,
                 'hash'  : hash,
                 'msg'   : msg,
-                'time'  : datetime.strptime(dt, '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=8),
+                'time'  : dt,
             })
         return commits
