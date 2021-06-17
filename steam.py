@@ -641,12 +641,15 @@ class Dota2:
         draw.text((80, 498 - 370 * int(match['radiant_win'])), '胜利', font=font2, fill=(255, 255, 255))
         draw.text((80, 128 + 370 * int(match['radiant_win'])), '失败', font=font2, fill=(255, 255, 255))
         for slot in range(0, 2):
+            winner = slot + int(match['radiant_win']) == 1
             team_damage = 0
             team_damage_received = 0
             team_kills = 0
             team_deaths = 0
             team_gold = 0
             team_exp = 0
+            max_mvp_point = 0
+            mvp_idx = 0
             draw.text((20, 126 + slot * 370), SLOT[slot],         font=font, fill=(255, 255, 255))
             draw.text((20, 140 + slot * 370), SLOT_CHINESE[slot], font=font, fill=(255, 255, 255))
             for i in range(0, 5):
@@ -694,6 +697,11 @@ class Dota2:
                 kda = 'KDA: {:.2f}'.format(
                     (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths'])
                 draw.text((370, 184 + slot * 70 + idx * 60), kda, font=font, fill=(0, 0, 0))
+
+                mvp_point = p['kills'] * 5 + p['assists'] * 3 + p['stuns'] * 0.5 + p['hero_damage'] * 0.001 + p['tower_damage'] * 0.002 + p['hero_healing'] * 0.002
+                if mvp_point > max_mvp_point:
+                    max_mvp_point = mvp_point
+                    mvp_idx = i
 
                 image.paste(Image.new('RGB', (252, 32), (192, 192, 192)), (469, 169 + slot * 70 + idx * 60))
                 p['purchase_log'].reverse()
@@ -768,6 +776,11 @@ class Dota2:
                 draw.text((370, 198 + slot * 70 + idx * 60), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
                 draw.text((370, 212 + slot * 70 + idx * 60), '治疗量: {:,}'.format(p['hero_healing']), font=font, fill=(0, 0, 0))
 
+            if winner:
+                draw.text((430, 170 + slot * 370 + mvp_idx * 60), 'MVP', font=font, fill=(255, 127, 39))
+            else:
+                draw.text((430, 170 + slot * 370 + mvp_idx * 60), '魂', font=font, fill=(0, 162, 232))
+
             draw.text((492, 128 + slot * 370), '杀敌', font=font, fill=(64, 64, 64))
             draw.text((560, 128 + slot * 370), '总伤害', font=font, fill=(64, 64, 64))
             draw.text((640, 128 + slot * 370), '总经济', font=font, fill=(64, 64, 64))
@@ -776,6 +789,13 @@ class Dota2:
             draw.text((560, 142 + slot * 370), f'{team_damage}', font=font, fill=(128, 128, 128))
             draw.text((640, 142 + slot * 370), f'{team_gold}', font=font, fill=(128, 128, 128))
             draw.text((720, 142 + slot * 370), f'{team_exp}', font=font, fill=(128, 128, 128))
+
+        draw.text(
+            (10, 860),
+            'MVP：击杀 * 5 + 助攻 * 3 + 控制时间 * 0.5 + 造成伤害 * 0.001 + 建筑伤害 * 0.002 + 治疗量 * 0.002，胜利且最高者',
+            font=font,
+            fill=(128, 128, 128)
+        )
 
         draw.text(
             (10, 880),
