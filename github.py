@@ -185,7 +185,7 @@ class Github:
         commits = []
         for lc in latest_commits:
             author = lc.find('author').find('name').string
-            dt = datetime.strptime(lc.find('updated').string, '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=8),
+            dt = datetime.strptime(lc.find('updated').string, '%Y-%m-%dT%H:%M:%SZ') + timedelta(hours=8)
             msg = lc.find('title').string.strip()
             hash = re.match('.*/(.*)', lc.find('link').get('href'))[1]
             commits.append({
