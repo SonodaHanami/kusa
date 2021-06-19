@@ -59,8 +59,45 @@ class Majiang:
 
     async def execute_async(self, message):
         msg = message['raw_message']
-        group = str(message.get("group_id", ''))
-        user = str(message.get("user_id", 0))
+        group = str(message.get('group_id', ''))
+        user = str(message.get('user_id', 0))
+
+        prm = re.match('(怎么)?绑定 *雀魂(.*)', msg, re.I)
+        if prm:
+            usage = '使用方法：\n绑定雀魂 雀魂牌谱屋数字ID'
+            success = '绑定{}成功'
+            try:
+                if prm[1]:
+                    return usage
+                madata = loadjson(MAJIANG)
+                # 之前已经绑定过
+                if madata['subscribers'].get(user):
+                    old_id = madata['subscribers'][user]
+                    if old_id != id:
+                        madata['players'][old_id]['subscribers'].remove(user)
+                        if not madata['players'][old_id]['subscribers']:
+                            del madata['players'][old_id]
+                        success += f'\n已自动解除绑定{old_id}'
+                madata['subscribers'][user] = id
+                if madata['players'].get(id):
+                    madata['players'][id]['subscribers'].append(user)
+                    madata['players'][id]['subscribers'] = list(set(madata['players'][id]['subscribers']))
+                else:
+                    madata['players'][id] = {
+                        '3': {
+                            'last_start_time': 0,
+                            'rank': 0
+                        },
+                        '4': {
+                            'last_start_time': 0,
+                            'rank': 0
+                        },
+                        'subscribers': [user]
+                    }
+                dumpjson(madata, MAJIANG)
+                return success.format(id)
+            except:
+                return usage
 
         return None
 
@@ -204,6 +241,8 @@ class Majiang:
                     pass
 
         dumpjson(madata, MAJIANG)
+
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'雀魂雷达扫描到了{len(news)}个新事件')
 
         for msg in news:
             msg['target_groups'] = []
