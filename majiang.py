@@ -69,6 +69,7 @@ class Majiang:
             try:
                 if prm[1]:
                     return usage
+                id = str(int(prm[2]))
                 madata = loadjson(MAJIANG)
                 # 之前已经绑定过
                 if madata['subscribers'].get(user):
