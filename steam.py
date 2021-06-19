@@ -78,7 +78,7 @@ class Steam:
         prm = re.match('(怎么)?绑定 *steam(.*)', msg, re.I)
         if prm:
             usage = '使用方法：\n绑定Steam Steam好友代码（8~10位）'
-            success = '绑定成功'
+            success = '绑定{}成功'
             try:
                 if prm[1]:
                     return usage
@@ -111,7 +111,7 @@ class Steam:
                         'DOTA2_rank_tier': 0,
                     }
                 dumpjson(steamdata, STEAM)
-                return success
+                return success.format(id3)
             except:
                 return usage
 
@@ -291,7 +291,7 @@ class Steam:
         players = self.get_players()
         sids = ','.join(str(p) for p in players.keys())
         now = int(datetime.now().timestamp())
-        # print('{} 请求玩家状态更新 {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), sids))
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), 'Steam雷达开始扫描')
         j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
         for p in j['response']['players']:
             id64 = int(p['steamid'])
@@ -383,6 +383,8 @@ class Steam:
         dumpjson(steamdata, STEAM)
 
         news += self.dota2.get_matches_report()
+
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'Steam雷达扫描到了{len(news)}个新事件')
 
         for msg in news:
             msg['target_groups'] = []
