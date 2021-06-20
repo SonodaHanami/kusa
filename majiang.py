@@ -100,6 +100,19 @@ class Majiang:
             except:
                 return usage
 
+        if msg == '解除绑定雀魂':
+            madata = loadjson(MAJIANG)
+            if madata['subscribers'].get(user):
+                id = madata['subscribers'][user]
+                madata['players'][id]['subscribers'].remove(user)
+                if not madata['players'][id]['subscribers']:
+                    del madata['players'][id]
+                del madata['subscribers'][user]
+                dumpjson(madata, MAJIANG)
+                return f'解除绑定{id}成功'
+            else:
+                return '没有找到你的绑定记录'
+
         return None
 
     def jobs(self):
