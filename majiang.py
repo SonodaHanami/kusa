@@ -62,6 +62,24 @@ class Majiang:
         group = str(message.get('group_id', ''))
         user = str(message.get('user_id', 0))
 
+        if msg == '订阅麻将':
+            madata = loadjson(MAJIANG)
+            if group in madata['subscribe_groups']:
+                return '本群已订阅麻将'
+            else:
+                madata['subscribe_groups'].append(group)
+                dumpjson(madata, MAJIANG)
+                return '订阅麻将成功'
+
+        if msg == '取消订阅麻将':
+            madata = loadjson(MAJIANG)
+            if group in madata['subscribe_groups']:
+                madata['subscribe_groups'].remove(group)
+                dumpjson(madata, MAJIANG)
+                return '取消订阅麻将成功'
+            else:
+                return '本群未订阅麻将'
+
         prm = re.match('(怎么)?绑定 *雀魂(.*)', msg, re.I)
         if prm:
             usage = '使用方法：\n绑定雀魂 雀魂牌谱屋数字ID'
