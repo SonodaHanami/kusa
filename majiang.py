@@ -14,12 +14,13 @@ ADMIN = CONFIG['ADMIN']
 MAJIANG = os.path.expanduser('~/.kusa/majiang.json')
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 
-SANMA = 'https://ak-data-2.sapk.ch/api/v2/pl3/player_records/{}/{}/1262304000000?limit=1&mode=21,22,23,24,25,26&descending=true'
-SIMA  = 'https://ak-data-2.sapk.ch/api/v2/pl4/player_records/{}/{}/1262304000000?limit=1&mode=8,9,11,12,15,16&descending=true'
+MS_PPW_3 = 'https://ak-data-2.sapk.ch/api/v2/pl3/player_records/{}/{}/1262304000000?limit=1&mode=21,22,23,24,25,26&descending=true'
+MS_PPW_4  = 'https://ak-data-2.sapk.ch/api/v2/pl4/player_records/{}/{}/1262304000000?limit=1&mode=8,9,11,12,15,16&descending=true'
+TH_NODOCCHI = 'https://nodocchi.moe/api/listuser.php?name={}'
 
 API_URL = {
-    '3': SANMA,
-    '4': SIMA,
+    '3': MS_PPW_3,
+    '4': MS_PPW_4,
 }
 
 GAME_MODE = {
@@ -57,6 +58,9 @@ class Majiang:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
+        self.majsoul = Majsoul()
+        self.tenhou  = Tenhou()
+
     async def execute_async(self, message):
         msg = message['raw_message']
         group = str(message.get('group_id', ''))
@@ -90,19 +94,19 @@ class Majiang:
                 id = str(int(prm[2]))
                 madata = loadjson(MAJIANG)
                 # 之前已经绑定过
-                if madata['subscribers'].get(user):
-                    old_id = madata['subscribers'][user]
+                if madata['majsoul']['subscribers'].get(user):
+                    old_id = madata['majsoul']['subscribers'][user]
                     if old_id != id:
-                        madata['players'][old_id]['subscribers'].remove(user)
-                        if not madata['players'][old_id]['subscribers']:
-                            del madata['players'][old_id]
+                        madata['majsoul']['players'][old_id]['subscribers'].remove(user)
+                        if not madata['majsoul']['players'][old_id]['subscribers']:
+                            del madata['majsoul']['players'][old_id]
                         success += f'\n已自动解除绑定{old_id}'
-                madata['subscribers'][user] = id
-                if madata['players'].get(id):
-                    madata['players'][id]['subscribers'].append(user)
-                    madata['players'][id]['subscribers'] = list(set(madata['players'][id]['subscribers']))
+                madata['majsoul']['subscribers'][user] = id
+                if madata['majsoul']['players'].get(id):
+                    madata['majsoul']['players'][id]['subscribers'].append(user)
+                    madata['majsoul']['players'][id]['subscribers'] = list(set(madata['majsoul']['players'][id]['subscribers']))
                 else:
-                    madata['players'][id] = {
+                    madata['majsoul']['players'][id] = {
                         '3': {
                             'last_start_time': 0,
                             'rank': 0
@@ -120,12 +124,58 @@ class Majiang:
 
         if msg == '解除绑定雀魂':
             madata = loadjson(MAJIANG)
-            if madata['subscribers'].get(user):
-                id = madata['subscribers'][user]
-                madata['players'][id]['subscribers'].remove(user)
-                if not madata['players'][id]['subscribers']:
-                    del madata['players'][id]
-                del madata['subscribers'][user]
+            if madata['majsoul']['subscribers'].get(user):
+                id = madata['majsoul']['subscribers'][user]
+                madata['majsoul']['players'][id]['subscribers'].remove(user)
+                if not madata['majsoul']['players'][id]['subscribers']:
+                    del madata['majsoul']['players'][id]
+                del madata['majsoul']['subscribers'][user]
+                dumpjson(madata, MAJIANG)
+                return f'解除绑定{id}成功'
+            else:
+                return '没有找到你的绑定记录'
+
+        prm = re.match('(怎么)?绑定 *天凤(.*)', msg, re.I)
+        if prm:
+            usage = '使用方法：\n绑定天凤 天凤ID'
+            success = '绑定{}成功'
+            try:
+                if prm[1]:
+                    return usage
+                id = prm[2].strip()
+                if not id:
+                    return usage
+                madata = loadjson(MAJIANG)
+                # 之前已经绑定过
+                if madata['tenhou']['subscribers'].get(user):
+                    old_id = madata['tenhou']['subscribers'][user]
+                    if old_id != id:
+                        madata['tenhou']['players'][old_id]['subscribers'].remove(user)
+                        if not madata['tenhou']['players'][old_id]['subscribers']:
+                            del madata['tenhou']['players'][old_id]
+                        success += f'\n已自动解除绑定{old_id}'
+                madata['tenhou']['subscribers'][user] = id
+                if madata['tenhou']['players'].get(id):
+                    madata['tenhou']['players'][id]['subscribers'].append(user)
+                    madata['tenhou']['players'][id]['subscribers'] = list(set(madata['tenhou']['players'][id]['subscribers']))
+                else:
+                    madata['tenhou']['players'][id] = {
+                        'last_start_time': 0,
+                        'subscribers': [user]
+                    }
+                dumpjson(madata, MAJIANG)
+                return success.format(id)
+            except:
+                return usage
+
+        if msg == '解除绑定天凤':
+            madata = loadjson(MAJIANG)
+            if madata['tenhou']['subscribers'].get(user):
+                id = madata['tenhou']['subscribers'][user]
+                madata['tenhou']['players'][id]['subscribers'].remove(user)
+                if not madata['tenhou']['players'][id]['subscribers']:
+                    del madata['tenhou']['players'][id]
+                del madata['tenhou']['subscribers'][user]
                 dumpjson(madata, MAJIANG)
                 return f'解除绑定{id}成功'
             else:
@@ -143,7 +193,7 @@ class Majiang:
         groups = madata.get('subscribe_groups')
         if not groups:
             return None
-        news = await self.get_news_async()
+        news = await self.majsoul.get_news_async() + await self.tenhou.get_news_async()
         sends = []
         for msg in news:
             for g in groups:
@@ -155,6 +205,7 @@ class Majiang:
                     })
         return sends
 
+class Majsoul:
     def get_account_zone(self, account_id):
         if not account_id:
             return 0
@@ -176,9 +227,9 @@ class Majiang:
         memberdata = loadjson(MEMBER)
         now = int(datetime.now().timestamp())
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '雀魂雷达开始扫描')
-        for p in madata['players']:
+        for p in madata['majsoul']['players']:
             for m in ['3', '4']:
-                if madata['players'][p][m]['last_start_time'] >= now - 1200:
+                if madata['majsoul']['players'][p][m]['last_start_time'] >= now - 1200:
                     continue
                 try:
                     # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '请求雀魂玩家最近比赛')
@@ -192,16 +243,16 @@ class Majiang:
                     continue
 
                 new_match = False
-                if j[0]['startTime'] > madata['players'][p][m]['last_start_time']:
+                if j[0] and j[0].get('startTime') > madata['majsoul']['players'][p][m]['last_start_time']:
                     print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '发现最近比赛更新！')
-                    madata['players'][p][m]['last_start_time'] = j[0]['startTime']
                     match = j[0]
+                    madata['majsoul']['players'][p][m]['last_start_time'] = match.get('startTime')
                     tosend = []
-                    start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match['startTime']))
-                    duration = match['endTime'] - match['startTime']
-                    mode = GAME_MODE.get(match['modeId'], '未知')
+                    start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match.get('startTime')))
+                    duration = match.get('endTime') - match.get('startTime')
+                    mode = GAME_MODE.get(match.get('modeId'), '未知')
                     subscriber = '不知道是谁'
-                    for mp in match['players']:
+                    for mp in match.get('players'):
                         mp['nickname'] = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                         if str(mp['accountId']) == p:
                             subscriber = mp['nickname']
@@ -211,9 +262,9 @@ class Majiang:
                     tosend.append('持续时间: {}分{}秒'.format(duration // 60, duration % 60))
                     players = []
                     wind = 0
-                    for mp in match['players']:
+                    for mp in match.get('players'):
                         wind += 1
-                        score = mp['score'] + len(match['players']) - wind
+                        score = mp['score'] + len(match.get('players')) - wind
                         players.append((mp['nickname'], score))
                     players.sort(key=lambda i: i[1], reverse=True)
                     for mp in players:
@@ -221,7 +272,7 @@ class Majiang:
                         wind = '东南西北'[mp[1] % 10]
                         score = str(mp[1] // 10 * 10)
                         mp_result = [rank, wind, mp[0], score]
-                        if mp[1] < 0:
+                        if score < 0:
                             mp_result.append('飞了！')
                         tosend.append(' '.join(mp_result))
 
@@ -229,19 +280,19 @@ class Majiang:
                     news.append(
                         {
                             'message': msg,
-                            'user'   : madata['players'][p]['subscribers']
+                            'user'   : madata['majsoul']['players'][p]['subscribers']
                         }
                     )
 
                     # 只有比赛更新才会有段位变动
                     cur_rank = 0
                     pname = '不知道是谁'
-                    for mp in match['players']:
+                    for mp in match.get('players'):
                         if str(mp['accountId']) == p:
                             cur_rank = mp['level'] // 100 % 10 * 10 + mp['level'] % 10
                             pname = mp['nickname']
                             break
-                    pre_rank = madata['players'][p][m]['rank']
+                    pre_rank = madata['majsoul']['players'][p][m]['rank']
                     if cur_rank != pre_rank:
                         if cur_rank:
                             if pre_rank:
@@ -262,11 +313,11 @@ class Majiang:
                                 )
                             news.append({
                                 'message': msg,
-                                'user'   : madata['players'][p]['subscribers']
+                                'user'   : madata['majsoul']['players'][p]['subscribers']
                             })
                         else:
                             pass
-                        madata['players'][p][m]['rank'] = cur_rank
+                        madata['majsoul']['players'][p][m]['rank'] = cur_rank
 
                 else:
                     # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现最近比赛更新')
@@ -275,6 +326,95 @@ class Majiang:
         dumpjson(madata, MAJIANG)
 
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'雀魂雷达扫描到了{len(news)}个新事件')
+
+        for msg in news:
+            msg['target_groups'] = []
+            for u in msg['user']:
+                for g in memberdata:
+                    if u in memberdata[g] and g not in msg['target_groups']:
+                        msg['target_groups'].append(g)
+
+        return news
+
+class Tenhou:
+    async def get_news_async(self):
+        '''
+        返回最新消息
+        '''
+        news = []
+        madata = loadjson(MAJIANG)
+        memberdata = loadjson(MEMBER)
+        now = int(datetime.now().timestamp())
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '天凤雷达开始扫描')
+        for p in madata['tenhou']['players']:
+            if madata['tenhou']['players'][p]['last_start_time'] >= now - 1200:
+                continue
+            try:
+                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '请求天凤玩家最近比赛')
+                j = requests.get(TH_NODOCCHI.format(p)).json()
+            except Exception as e:
+                print(e)
+                continue
+            if not j or not j.get('list'):
+                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现任何比赛')
+                continue
+
+            new_match = False
+            if j['list'][-1] and int(j['list'][-1].get('starttime')) > madata['tenhou']['players'][p]['last_start_time']:
+                print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, '发现最近比赛更新！')
+                match = j['list'][-1]
+                madata['tenhou']['players'][p]['last_start_time'] = int(match.get('starttime'))
+                tosend = []
+                start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(match.get('starttime'))))
+                duration = match.get('during')
+                bar = ''
+                mode = ''
+                if match.get('playernum') == '3':
+                    mode += '三'
+                elif match.get('playernum') == '4':
+                    mode += '四'
+                else:
+                    mode += bar
+                pl = int(match.get('playerlevel'))
+                if match.get('shuugi'):
+                    pl += 4
+                if match.get('sctype') == 'e' and int(match.get('playlength')) == 0:
+                    mode += '技'
+                    mode += bar
+                else:
+                    mode += '般上特鳳若銀琥孔'[pl]
+                    mode += '技東南'[int(match.get('playlength'))]
+                mode += '喰' if match.get('kuitanari') else bar
+                mode += '赤' if match.get('akaari') else bar
+                mode += '祝' +  '０１２３４５６７８９'[int(match.get('shuugi'))] if match.get('shuugi') else bar
+                mode += '速' if match.get('rapid') else ''
+                subscriber = p
+                tosend.append('天凤雷达动叻！')
+                tosend.append('{} 打了一局 [{}]'.format(subscriber, mode))
+                tosend.append('开始时间: {}'.format(start_time))
+                tosend.append('持续时间: {}分'.format(duration))
+                players = []
+                for mp in ['player1', 'player2', 'player3', 'player4'][:int(match.get('playernum'))]:
+                    rank = '[{}位]'.format(mp[-1])
+                    score = match.get(mp + 'ptr')
+                    mp_result = [rank, match.get(mp), score]
+                    tosend.append(' '.join(mp_result))
+
+                msg = '\n'.join(tosend)
+                news.append(
+                    {
+                        'message': msg,
+                        'user'   : madata['tenhou']['players'][p]['subscribers']
+                    }
+                )
+
+            else:
+                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现最近比赛更新')
+                pass
+
+        dumpjson(madata, MAJIANG)
+
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'天凤雷达扫描到了{len(news)}个新事件')
 
         for msg in news:
             msg['target_groups'] = []

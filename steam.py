@@ -291,7 +291,7 @@ class Steam:
         players = self.get_players()
         sids = ','.join(str(p) for p in players.keys())
         now = int(datetime.now().timestamp())
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), 'Steam雷达开始扫描')
+        # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), 'Steam雷达开始扫描')
         j = requests.get(PLAYER_SUMMARY.format(APIKEY, sids)).json()
         for p in j['response']['players']:
             id64 = int(p['steamid'])
@@ -384,7 +384,8 @@ class Steam:
 
         news += self.dota2.get_matches_report()
 
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'Steam雷达扫描到了{len(news)}个新事件')
+        if len(news) > 0:
+            print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'Steam雷达扫描到了{len(news)}个新事件')
 
         for msg in news:
             msg['target_groups'] = []
