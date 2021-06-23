@@ -424,13 +424,10 @@ class Dota2:
         except Exception as e:
             return '', 0
 
-    # 根据slot判断队伍, 返回1为天辉, 2为夜魇
+    # 根据slot判断队伍, 返回0为天辉, 1为夜魇
     @staticmethod
     def get_team_by_slot(slot):
-        if slot < 100:
-            return 1
-        else:
-            return 2
+        return slot // 100
 
     def request_match(self, match_id):
         j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
@@ -528,7 +525,7 @@ class Dota2:
 
         # 队伍信息
         team = players[0]['dota2_team']
-        win = match['radiant_win'] == (team == 1)
+        win = match['radiant_win'] == (team == 0)
 
         if mode_id in (15, 19):  # 各种活动模式仅简略通报
             return f'{nicknames}玩了一把[{mode}/{lobby}]，开始于{start_time}，' \
@@ -605,22 +602,21 @@ class Dota2:
         font = ImageFont.truetype(os.path.expanduser('~/.kusa/fonts/MSYH.TTC'), 12)
         font2 = ImageFont.truetype(os.path.expanduser('~/.kusa/fonts/MSYH.TTC'), 18)
         draw = ImageDraw.Draw(image)
-        draw.rectangle((0, 0, 800, 100), 'black')
+        draw.rectangle((0, 0, 800, 70), 'black')
         title = '比赛 ' + str(match['match_id'])
-        title_size = font2.getsize(title)
         # 手动加粗
-        draw.text(((800 - title_size[0]) / 2    , 10), title, font=font2, fill=(255, 255, 255))
-        draw.text(((800 - title_size[0]) / 2 + 1, 10), title, font=font2, fill=(255, 255, 255))
-        draw.text((20, 50), '开始时间', font=font, fill=(255, 255, 255))
-        draw.text((21, 50), '开始时间', font=font, fill=(255, 255, 255))
-        draw.text((200, 50), '持续时间', font=font, fill=(255, 255, 255))
-        draw.text((201, 50), '持续时间', font=font, fill=(255, 255, 255))
-        draw.text((360, 50), 'Level', font=font, fill=(255, 255, 255))
-        draw.text((361, 50), 'Level', font=font, fill=(255, 255, 255))
-        draw.text((500, 50), '地区', font=font, fill=(255, 255, 255))
-        draw.text((501, 50), '地区', font=font, fill=(255, 255, 255))
-        draw.text((650, 50), '比赛模式', font=font, fill=(255, 255, 255))
-        draw.text((651, 50), '比赛模式', font=font, fill=(255, 255, 255))
+        draw.text((30, 20), title, font=font2, fill=(255, 255, 255))
+        draw.text((31, 20), title, font=font2, fill=(255, 255, 255))
+        draw.text((250, 20), '开始时间', font=font, fill=(255, 255, 255))
+        draw.text((251, 20), '开始时间', font=font, fill=(255, 255, 255))
+        draw.text((400, 20), '持续时间', font=font, fill=(255, 255, 255))
+        draw.text((401, 20), '持续时间', font=font, fill=(255, 255, 255))
+        draw.text((480, 20), 'Level', font=font, fill=(255, 255, 255))
+        draw.text((481, 20), 'Level', font=font, fill=(255, 255, 255))
+        draw.text((560, 20), '地区', font=font, fill=(255, 255, 255))
+        draw.text((561, 20), '地区', font=font, fill=(255, 255, 255))
+        draw.text((650, 20), '比赛模式', font=font, fill=(255, 255, 255))
+        draw.text((651, 20), '比赛模式', font=font, fill=(255, 255, 255))
         start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match['start_time']))
         duration = '{}分{}秒'.format(match['duration'] // 60, match['duration'] % 60)
         skill = SKILL_LEVEL[match['skill']] if match.get('skill') else 'Unknown'
@@ -630,21 +626,32 @@ class Dota2:
         mode = GAME_MODE[mode_id] if mode_id in GAME_MODE else '未知'
         lobby_id = match['lobby_type']
         lobby = LOBBY[lobby_id] if lobby_id in LOBBY else '未知'
-        draw.text((20, 70), start_time, font=font, fill=(255, 255, 255))
-        draw.text((200, 70), duration, font=font, fill=(255, 255, 255))
-        draw.text((360, 70), skill, font=font, fill=(255, 255, 255))
-        draw.text((500, 70), region, font=font, fill=(255, 255, 255))
-        draw.text((650, 70), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
-        draw.rectangle((0, 120, 800, 122), (60, 144, 40))
-        draw.rectangle((0, 122, 120, 162), (60, 144, 40))
-        draw.polygon([(120, 122), (160, 122), (120, 162)], (60, 144, 40))
-        draw.rectangle((0, 490, 800, 492), (156, 54, 40))
-        draw.rectangle((0, 492, 120, 532), (156, 54, 40))
-        draw.polygon([(120, 492), (160, 492), (120, 532)], (156, 54, 40))
+        draw.text((250, 40), start_time, font=font, fill=(255, 255, 255))
+        draw.text((400, 40), duration, font=font, fill=(255, 255, 255))
+        draw.text((480, 40), skill, font=font, fill=(255, 255, 255))
+        draw.text((560, 40), region, font=font, fill=(255, 255, 255))
+        draw.text((650, 40), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
+        RADIANT_GREEN = (60, 144, 40)
+        DIRE_RED = (156, 54, 40)
+        winner = 1 - int(match['radiant_win'])
+        draw.text((364, 81), SLOT_CHINESE[winner] + '胜利', font=font2, fill=[RADIANT_GREEN, DIRE_RED][winner])
+        draw.text((365, 81), SLOT_CHINESE[winner] + '胜利', font=font2, fill=[RADIANT_GREEN, DIRE_RED][winner])
+        draw.text((364, 81), SLOT_CHINESE[winner] + '胜利', font=font2, fill=[RADIANT_GREEN, DIRE_RED][winner])
+        radiant_score = str(match['radiant_score'])
+        radiant_score_size = font2.getsize(radiant_score)
+        draw.text((338 - radiant_score_size[0], 81), radiant_score, font=font2, fill=RADIANT_GREEN)
+        draw.text((339 - radiant_score_size[0], 81), radiant_score, font=font2, fill=RADIANT_GREEN)
+        draw.text((460, 81), str(match['dire_score']), font=font2, fill=DIRE_RED)
+        draw.text((461, 81), str(match['dire_score']), font=font2, fill=DIRE_RED)
+        draw.rectangle((0, 120, 800, 122), RADIANT_GREEN)
+        draw.rectangle((0, 122, 120, 162), RADIANT_GREEN)
+        draw.polygon([(120, 122), (160, 122), (120, 162)], RADIANT_GREEN)
+        draw.rectangle((0, 490, 800, 492), DIRE_RED)
+        draw.rectangle((0, 492, 120, 532), DIRE_RED)
+        draw.polygon([(120, 492), (160, 492), (120, 532)], DIRE_RED)
         draw.text((80, 498 - 370 * int(match['radiant_win'])), '胜利', font=font2, fill=(255, 255, 255))
         draw.text((80, 128 + 370 * int(match['radiant_win'])), '失败', font=font2, fill=(255, 255, 255))
         for slot in range(0, 2):
-            winner = slot + int(match['radiant_win']) == 1
             team_damage = 0
             team_damage_received = 0
             team_kills = 0
@@ -683,23 +690,24 @@ class Dota2:
                 image.paste(rank_img, (100, 170 + slot * 70 + idx * 60))
                 rank = '{}{}'.format(PLAYER_RANK[rank], star if star else '')
                 draw.text((145, 184 + slot * 70 + idx * 60), rank, font=font, fill=(128, 128, 128))
-                draw.text(
-                    (145, 170 + slot * 70 + idx * 60),
-                    p.get('personaname') if p.get('personaname') else '匿名玩家',
-                    font=font,
-                    fill=[(60, 144, 40), (156, 54, 40)][slot]
-                )
+                pname = p.get('personaname') if p.get('personaname') else '匿名玩家'
+                pname_size = font.getsize(pname)
+                while pname_size[0] > 65:
+                    pname = pname[:-2] + '…'
+                    pname_size = font.getsize(pname)
+                draw.text((145, 170 + slot * 70 + idx * 60), pname, font=font, fill=[RADIANT_GREEN, DIRE_RED][slot])
+                draw.rectangle((210, 170 + slot * 70 + idx * 60, 370, 184 + slot * 70 + idx * 60), (255, 255, 255))
                 net = '{:,}'.format(p['net_worth'])
                 damage_to_net = '({:.2f})'.format(p['hero_damage'] / p['net_worth'] if p['net_worth'] else 0)
                 draw.text((146, 197 + slot * 70 + idx * 60), net, font=font, fill=(0, 0, 0))
                 draw.text((145, 196 + slot * 70 + idx * 60), net, font=font, fill=(255, 255, 0))
                 draw.text((145, 210 + slot * 70 + idx * 60), damage_to_net, font=font, fill=(0, 0, 0))
 
-                kda = '{}/{}/{}'.format(p['kills'], p['deaths'], p['assists'])
+                kda = '{}/{}/{} ({:.2f})'.format(
+                    p['kills'], p['deaths'], p['assists'],
+                    (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths']
+                )
                 draw.text((370, 170 + slot * 70 + idx * 60), kda, font=font, fill=(0, 0, 0))
-                kda = 'KDA: {:.2f}'.format(
-                    (p['kills'] + p['assists']) if p['deaths'] == 0 else (p['kills'] + p['assists']) / p['deaths'])
-                draw.text((370, 184 + slot * 70 + idx * 60), kda, font=font, fill=(0, 0, 0))
 
                 mvp_point = p['kills'] * 5 + p['assists'] * 3 + p['stuns'] * 0.5 + p['hero_damage'] * 0.001 + p['tower_damage'] * 0.002 + p['hero_healing'] * 0.002
                 if mvp_point > max_mvp_point:
@@ -773,16 +781,17 @@ class Dota2:
                 damage_rate = 0 if team_damage == 0 else 100 * (p['hero_damage'] / team_damage)
                 damage_received = sum(p['damage_inflictor_received'].values())
                 damage_received_rate = 0 if team_damage_received == 0 else 100 * (damage_received / team_damage_received)
-                draw.text((210, 184 + slot * 70 + idx * 60), '造成伤害: {:,}({:.2f}%)'.format(p['hero_damage'], damage_rate), font=font, fill=(0, 0, 0))
-                draw.text((210, 198 + slot * 70 + idx * 60), '承受伤害: {:,}({:.2f}%)'.format(damage_received, damage_received_rate), font=font, fill=(0, 0, 0))
+                draw.text((210, 184 + slot * 70 + idx * 60), '造成伤害: {:,} ({:.2f}%)'.format(p['hero_damage'], damage_rate), font=font, fill=(0, 0, 0))
+                draw.text((210, 198 + slot * 70 + idx * 60), '承受伤害: {:,} ({:.2f}%)'.format(damage_received, damage_received_rate), font=font, fill=(0, 0, 0))
                 draw.text((210, 212 + slot * 70 + idx * 60), '建筑伤害: {:,}'.format(p['tower_damage']), font=font, fill=(0, 0, 0))
-                draw.text((370, 198 + slot * 70 + idx * 60), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
+                draw.text((370, 184 + slot * 70 + idx * 60), '参战率: {:.2f}%'.format(participation), font=font, fill=(0, 0, 0))
+                draw.text((370, 198 + slot * 70 + idx * 60), '控制时间: {:.2f}s'.format(p['stuns']), font=font, fill=(0, 0, 0))
                 draw.text((370, 212 + slot * 70 + idx * 60), '治疗量: {:,}'.format(p['hero_healing']), font=font, fill=(0, 0, 0))
 
-            if winner:
-                draw.text((430, 170 + slot * 370 + mvp_idx * 60), 'MVP', font=font, fill=(255, 127, 39))
+            if slot == winner:
+                draw.text((210, 170 + slot * 370 + mvp_idx * 60), 'MVP', font=font, fill=(255, 127, 39))
             else:
-                draw.text((430, 170 + slot * 370 + mvp_idx * 60), '魂', font=font, fill=(0, 162, 232))
+                draw.text((210, 170 + slot * 370 + mvp_idx * 60), '魂', font=font, fill=(0, 162, 232))
 
             draw.text((492, 128 + slot * 370), '杀敌', font=font, fill=(64, 64, 64))
             draw.text((560, 128 + slot * 370), '总伤害', font=font, fill=(64, 64, 64))
