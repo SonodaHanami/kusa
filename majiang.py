@@ -16,7 +16,7 @@ MEMBER = os.path.expanduser('~/.kusa/member.json')
 
 MS_PPW_3 = 'https://ak-data-2.sapk.ch/api/v2/pl3/player_records/{}/{}/1262304000000?limit=1&mode=21,22,23,24,25,26&descending=true'
 MS_PPW_4  = 'https://ak-data-2.sapk.ch/api/v2/pl4/player_records/{}/{}/1262304000000?limit=1&mode=8,9,11,12,15,16&descending=true'
-TH_NODOCCHI = 'https://nodocchi.moe/api/listuser.php?name={}'
+TH_NODOCCHI = 'https://nodocchi.moe/api/listuser.php?name={}&start={}'
 
 API_URL = {
     '3': MS_PPW_3,
@@ -242,7 +242,6 @@ class Majsoul:
                     # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现任何比赛')
                     continue
 
-                new_match = False
                 if j[0] and j[0].get('startTime') > madata['majsoul']['players'][p][m]['last_start_time']:
                     print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '发现最近比赛更新！')
                     match = j[0]
@@ -350,16 +349,15 @@ class Tenhou:
             if madata['tenhou']['players'][p]['last_start_time'] >= now - 1200:
                 continue
             try:
-                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '请求天凤玩家最近比赛')
-                j = requests.get(TH_NODOCCHI.format(p)).json()
+                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, '请求天凤玩家最近比赛')
+                j = requests.get(TH_NODOCCHI.format(p, madata['tenhou']['players'][p]['last_start_time'] + 1)).json()
             except Exception as e:
                 print(e)
                 continue
             if not j or not j.get('list'):
-                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现任何比赛')
+                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, '没有发现最近比赛更新')
                 continue
 
-            new_match = False
             if j['list'][-1] and int(j['list'][-1].get('starttime')) > madata['tenhou']['players'][p]['last_start_time']:
                 print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, '发现最近比赛更新！')
                 match = j['list'][-1]
@@ -409,7 +407,7 @@ class Tenhou:
                 )
 
             else:
-                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, m, '没有发现最近比赛更新')
+                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), p, '没有发现最近比赛更新')
                 pass
 
         dumpjson(madata, MAJIANG)
