@@ -18,7 +18,7 @@ BOT = CONFIG['BOT']
 ATBOT = f'[CQ:at,qq={BOT}]'
 UNKNOWN = None
 IDK = '我不知道'
-MAX_ATTEMPTS = 10
+MAX_ATTEMPTS = 5
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 STEAM  = os.path.expanduser('~/.kusa/steam.json')
 IMAGES = os.path.expanduser('~/.kusa/images/')
@@ -429,12 +429,6 @@ class Dota2:
     def get_team_by_slot(slot):
         return slot // 100
 
-    def request_match(self, match_id):
-        j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
-        job_id = j['job']['jobId']
-        print('{} 比赛编号 {} 请求OPENDOTA分析，job_id: {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id, job_id))
-        return job_id
-
     def get_match(self, match_id):
         MATCH = os.path.join(DOTA2_MATCHES, f'{match_id}.json')
         if os.path.exists(MATCH):
@@ -442,13 +436,27 @@ class Dota2:
             return loadjson(MATCH)
         steamdata = loadjson(STEAM)
         try:
-            if steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] > MAX_ATTEMPTS:
-                return requests.get(MATCH_DETAILS.format(APIKEY, match_id)).json()['result']
             match = requests.get(OPENDOTA_MATCHES.format(match_id)).json()
+            if match_id in steamdata['DOTA2_matches_pool']:
+                if steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] >= MAX_ATTEMPTS:
+                    print('{} 比赛编号 {} 重试次数过多，跳过分析'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id))
+                    if not match.get('players'):
+                        print('{} 比赛编号 {} 从OPENDOTA获取不到分析结果，使用Value的API'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id))
+                        match = requests.get(MATCH_DETAILS.format(APIKEY, match_id)).json()['result']
+                    match['incomplete'] = True
+                    dumpjson(match, MATCH)
+                    return match
+            if match['game_mode'] in (15, 19):
+                # 活动模式
+                print('{} 比赛编号 {} 活动模式，跳过分析'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id))
+                match['incomplete'] = True
+                dumpjson(match, MATCH)
+                return match
             received = match['players'][0]['damage_inflictor_received']
         except Exception as e:
             print('{} {} {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id, e))
-            steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
+            if match_id in steamdata['DOTA2_matches_pool']:
+                steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
             dumpjson(steamdata, STEAM)
             return {}
         if received is None:
@@ -468,10 +476,19 @@ class Dota2:
                     return {}
             else:
                 # 不存在之前请求分析的job_id，重新请求一次，保存，下次再确认这个job是否已完成
-                job_id = self.request_match(match_id)
-                steamdata['DOTA2_matches_pool'][match_id]['job_id'] = job_id
-                steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
-                dumpjson(steamdata, STEAM)
+                attempts = ''
+                if match_id in steamdata['DOTA2_matches_pool']:
+                    steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
+                    attempts = '（第{}次）'.format(steamdata['DOTA2_matches_pool'][match_id]['request_attempts'])
+                j = requests.post(OPENDOTA_REQUEST.format(match_id)).json()
+                job_id = j['job']['jobId']
+                print('{} 比赛编号 {} 请求OPENDOTA分析{}，job_id: {}'.format(
+                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                    match_id, attempts, job_id
+                ))
+                if match_id in steamdata['DOTA2_matches_pool']:
+                    steamdata['DOTA2_matches_pool'][match_id]['job_id'] = job_id
+                    dumpjson(steamdata, STEAM)
                 return {}
         else:
             # 比赛分析结果完整了
@@ -485,6 +502,22 @@ class Dota2:
         except Exception as e:
             print(e)
             return Image.new('RGBA', (30, 30), (255, 160, 160))
+
+    def init_player(self, player):
+        if not player.get('net_worth'):
+            player['net_worth'] = 0
+        if not player.get('total_xp'):
+            player['total_xp'] = 0
+        if not player.get('damage_inflictor_received'):
+            player['damage_inflictor_received'] = {}
+        if not player.get('hero_healing'):
+            player['hero_healing'] = 0
+        if not player.get('stuns'):
+            player['stuns'] = 0
+        if not player.get('purchase_log'):
+            player['purchase_log'] = []
+        if not player.get('item_usage'):
+            player['item_usage'] = {}
 
     def draw_title(self, match, draw, font, item, title, color):
         idx = item[0]
@@ -503,6 +536,8 @@ class Dota2:
         match = self.get_match(match_id)
         if not match:
             return None
+        for p in match['players']:
+            self.init_player(p)
         steamdata = loadjson(STEAM)
         players = steamdata['DOTA2_matches_pool'][match_id]['players']
         start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match['start_time']))
@@ -539,18 +574,12 @@ class Dota2:
         team = players[0]['dota2_team']
         win = match['radiant_win'] == (team == 0)
 
-        if mode_id in (15, 19):  # 各种活动模式仅简略通报
-            return f'{nicknames}玩了一把[{mode}/{lobby}]，开始于{start_time}，' \
-                f'持续{duration/60:.0f}分{duration%60:.0f}秒，' \
-                f'看起来好像是{"赢" if win else "输"}了。'
-
         team_damage = 0
-        team_kills = 0
+        team_score = [match['radiant_score'], match['dire_score']][team]
         team_deaths = 0
         for i in match['players']:
             if self.get_team_by_slot(i['player_slot']) == team:
                 team_damage += i['hero_damage']
-                team_kills += i['kills']
                 team_deaths += i['deaths']
 
         top_kda = 0
@@ -592,7 +621,7 @@ class Dota2:
             gpm, xpm = i['gpm'], i['xpm']
 
             damage_rate = 0 if team_damage == 0 else (100 * damage / team_damage)
-            participation = 0 if team_kills == 0 else (100 * (kills + assists) / team_kills)
+            participation = 0 if team_score == 0 else (100 * (kills + assists) / team_score)
             deaths_rate = 0 if team_deaths == 0 else (100 * deaths / team_deaths)
 
             tosend.append(
@@ -617,8 +646,8 @@ class Dota2:
         draw.rectangle((0, 0, 800, 70), 'black')
         title = '比赛 ' + str(match['match_id'])
         # 手动加粗
-        draw.text((30, 20), title, font=font2, fill=(255, 255, 255))
-        draw.text((31, 20), title, font=font2, fill=(255, 255, 255))
+        draw.text((30, 15), title, font=font2, fill=(255, 255, 255))
+        draw.text((31, 15), title, font=font2, fill=(255, 255, 255))
         draw.text((250, 20), '开始时间', font=font, fill=(255, 255, 255))
         draw.text((251, 20), '开始时间', font=font, fill=(255, 255, 255))
         draw.text((400, 20), '持续时间', font=font, fill=(255, 255, 255))
@@ -643,6 +672,8 @@ class Dota2:
         draw.text((480, 40), skill, font=font, fill=(255, 255, 255))
         draw.text((560, 40), region, font=font, fill=(255, 255, 255))
         draw.text((650, 40), f'{mode}/{lobby}', font=font, fill=(255, 255, 255))
+        if match.get('incomplete'):
+            draw.text((30, 40), '※分析结果不完整', font=font, fill=(255, 255, 255))
         RADIANT_GREEN = (60, 144, 40)
         DIRE_RED = (156, 54, 40)
         winner = 1 - int(match['radiant_win'])
@@ -664,9 +695,10 @@ class Dota2:
         draw.text((80, 498 - 370 * int(match['radiant_win'])), '胜利', font=font2, fill=(255, 255, 255))
         draw.text((80, 128 + 370 * int(match['radiant_win'])), '失败', font=font2, fill=(255, 255, 255))
         max_net = [0, 0]
-        max_kills = [0, 0]
+        max_kills = [0, 0, 0]
         max_deaths = [0, 0, 99999]
-        max_assists = [0, 0]
+        max_assists = [0, 0, 0]
+        max_hero_damage = [0, 0]
         max_tower_damage = [0, 0]
         max_stuns = [0, 0]
         max_healing = [0, 0]
@@ -686,6 +718,7 @@ class Dota2:
             for i in range(0, 5):
                 idx = slot * 5 + i
                 p = match['players'][idx]
+                self.init_player(p)
                 p['hurt'] = sum(p['damage_inflictor_received'].values())
                 p['participation'] = 0 if team_score == 0 else 100 * (p['kills'] + p['assists']) / team_score
                 team_damage += p['hero_damage']
@@ -739,12 +772,14 @@ class Dota2:
                     max_mvp_point = [idx, mvp_point]
                 if p['net_worth'] > max_net[1]:
                     max_net = [idx, p['net_worth']]
-                if p['kills'] > max_kills[1]:
-                    max_kills = [idx, p['kills']]
+                if p['kills'] > max_kills[1] or (p['kills'] == max_kills[1] and p['hero_damage'] > max_kills[2]):
+                    max_kills = [idx, p['kills'], p['hero_damage']]
                 if p['deaths'] > max_deaths[1] or (p['deaths'] == max_deaths[1] and p['net_worth'] < max_deaths[2]):
                     max_deaths = [idx, p['deaths'], p['net_worth']]
-                if p['assists'] > max_assists[1]:
-                    max_assists = [idx, p['assists']]
+                if p['assists'] > max_assists[1] or (p['assists'] == max_assists[1] and p['hero_damage'] > max_assists[2]):
+                    max_assists = [idx, p['assists'], p['hero_damage']]
+                if p['hero_damage'] > max_hero_damage[1]:
+                    max_hero_damage = [idx, p['hero_damage']]
                 if p['tower_damage'] > max_tower_damage[1]:
                     max_tower_damage = [idx, p['tower_damage']]
                 if p['stuns'] > max_stuns[1]:
@@ -842,16 +877,26 @@ class Dota2:
             draw.text((640, 142 + slot * 370), f'{team_gold}', font=font, fill=(128, 128, 128))
             draw.text((720, 142 + slot * 370), f'{team_exp}', font=font, fill=(128, 128, 128))
 
-        self.draw_title(match, draw, font, max_net, '富', (255, 216, 0))
-        self.draw_title(match, draw, font, max_kills, '破', (224, 36, 36))
-        self.draw_title(match, draw, font, max_deaths, '鬼', (192, 192, 192))
-        self.draw_title(match, draw, font, max_assists, '助', (0, 132, 66))
-        self.draw_title(match, draw, font, max_tower_damage, '拆', (128, 0, 255))
-        self.draw_title(match, draw, font, max_stuns, '控', (255, 0, 128))
+        if max_net[1] > 0:
+            self.draw_title(match, draw, font, max_net, '富', (255, 216, 0))
+        if max_kills[1] > 0:
+            self.draw_title(match, draw, font, max_kills, '破', (224, 36, 36))
+        if max_deaths[1] > 0:
+            self.draw_title(match, draw, font, max_deaths, '鬼', (192, 192, 192))
+        if max_assists[1] > 0:
+            self.draw_title(match, draw, font, max_assists, '助', (0, 132, 66))
+        if max_hero_damage[1] > 0:
+            self.draw_title(match, draw, font, max_hero_damage, '爆', (192, 0, 255))
+        if max_tower_damage[1] > 0:
+            self.draw_title(match, draw, font, max_tower_damage, '拆', (128, 0, 255))
+        if max_stuns[1] > 0:
+            self.draw_title(match, draw, font, max_stuns, '控', (255, 0, 128))
         if max_healing[1] > 0:
             self.draw_title(match, draw, font, max_healing, '奶', (0, 228, 120))
-        self.draw_title(match, draw, font, max_hurt, '耐', (112, 146, 190))
-        self.draw_title(match, draw, font, min_participation, '摸', (200, 190, 230))
+        if max_hurt[1] > 0:
+            self.draw_title(match, draw, font, max_hurt, '耐', (112, 146, 190))
+        if min_participation[1] < 999:
+            self.draw_title(match, draw, font, min_participation, '摸', (200, 190, 230))
 
         draw.text(
             (10, 860),
@@ -867,6 +912,7 @@ class Dota2:
             fill=(128, 128, 128)
         )
         image.save(os.path.join(DOTA2_MATCHES, f'{match_id}.png'), 'png')
+        print('{} 比赛编号 {} 生成战报图片'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id))
 
     def get_matches_report(self):
         steamdata = loadjson(STEAM)
@@ -879,9 +925,8 @@ class Dota2:
                 continue
             m = self.generate_match_message(match_id)
             if isinstance(m, str):
-                if match_info['request_attempts'] <= MAX_ATTEMPTS:
-                    self.generate_match_image(match_id)
-                    m += '\n[CQ:image,file=file:///{}]'.format(os.path.join(DOTA2_MATCHES, f'{match_id}.png'))
+                self.generate_match_image(match_id)
+                m += '\n[CQ:image,file=file:///{}]'.format(os.path.join(DOTA2_MATCHES, f'{match_id}.png'))
                 reports.append(
                     {
                         'message': m,
