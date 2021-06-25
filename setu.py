@@ -17,6 +17,7 @@ APIKEY = CONFIG['SETU_APIKEY']
 SOURCE_LOLICON_APP = 'https://api.lolicon.app/setu/'
 
 SETU = os.path.expanduser('~/.kusa/setu.json')
+SETU_PATH = os.path.expanduser('~/.kusa/setu/')
 SETU_REPLY = '{pid}\n{title}\n{author}\n[CQ:image,file=file:///{path},cache=0]'
 TEMP_IMG = os.path.expanduser('~/.kusa/setu/temp{}.png')
 MAX_TIME = 5
@@ -26,15 +27,18 @@ class Setu:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
 
-        mkdir_if_not_exists(SETU)
+        mkdir_if_not_exists(SETU_PATH)
 
         self.last = {}
 
 
     async def execute_async(self, message):
         msg = message['raw_message']
-        group = str(message.get("group_id", ''))
-        user = str(message.get("user_id", 0))
+        group = str(message.get('group_id', ''))
+        user = str(message.get('user_id', 0))
+
+        if message['message_type'] == 'private':
+            return None
 
         if msg == '戒色':
             setudata = loadjson(SETU)
@@ -73,13 +77,10 @@ class Setu:
                 return f'[CQ:at,qq={user}] 你冲得太快了，请稍后重试'
 
             keyword = msg[2:].strip()
-            if message["message_type"] == "group":
-                await self.api.send_group_msg(
-                    group_id=message['group_id'],
-                    message=f'正在搜索',
-                )
-            elif message["message_type"] == "private":
-                pass
+            await self.api.send_group_msg(
+                group_id=message['group_id'],
+                message=f'正在搜索',
+            )
 
             url = f'{SOURCE_LOLICON_APP}?apikey={APIKEY}&r18=0&num=1&size1200=false'
             if keyword:
@@ -101,16 +102,15 @@ class Setu:
                 errmsg = code_dict.get(code, '')
                 return f'出错了！\n{errmsg}\n总之就是没有色图！'
             data = data['data'][0]
-            pid = f"pid：{data['pid']} p{data['p']}"
-            title = f"标题：{data['title']}"
-            author = f"作者：{data['author']}"
+            pid = 'pid：{} p{}'.format(data['pid'], data['p'])
+            title = '标题：{}'.format(data['title'])
+            author = '作者：{}'.format(data['author'])
             img_url = data['url']
 
             # 给我也来一份
-            setu_path = os.path.expanduser("~/.kusa/setu/")
-            file_path = os.path.join(setu_path, os.path.basename(img_url))
+            file_path = os.path.join(SETU_PATH, os.path.basename(img_url))
             if not os.path.exists(file_path):
-                with open(os.path.join(setu_path, f"{data['pid']}_p{data['p']}.json"), 'w') as f:
+                with open(os.path.join(SETU_PATH, '{}_p{}.json'.format(data['pid'], data['p'])), 'w') as f:
                     json.dump(json.loads(r.content), f, indent=4, ensure_ascii=False)
                 r = requests.get(img_url)
                 with open(file_path, 'wb') as f:
