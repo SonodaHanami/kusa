@@ -695,6 +695,7 @@ class Dota2:
         draw.text((80, 498 - 370 * int(match['radiant_win'])), '胜利', font=font2, fill=(255, 255, 255))
         draw.text((80, 128 + 370 * int(match['radiant_win'])), '失败', font=font2, fill=(255, 255, 255))
         max_net = [0, 0]
+        max_xpm = [0, 0]
         max_kills = [0, 0, 0]
         max_deaths = [0, 0, 99999]
         max_assists = [0, 0, 0]
@@ -772,6 +773,8 @@ class Dota2:
                     max_mvp_point = [idx, mvp_point]
                 if p['net_worth'] > max_net[1]:
                     max_net = [idx, p['net_worth']]
+                if p['xp_per_min'] > max_xpm[1]:
+                    max_xpm = [idx, p['xp_per_min']]
                 if p['kills'] > max_kills[1] or (p['kills'] == max_kills[1] and p['hero_damage'] > max_kills[2]):
                     max_kills = [idx, p['kills'], p['hero_damage']]
                 if p['deaths'] > max_deaths[1] or (p['deaths'] == max_deaths[1] and p['net_worth'] < max_deaths[2]):
@@ -878,32 +881,27 @@ class Dota2:
             draw.text((720, 142 + slot * 370), f'{team_exp}', font=font, fill=(128, 128, 128))
 
         if max_net[1] > 0:
-            self.draw_title(match, draw, font, max_net, '富', (255, 216, 0))
+            self.draw_title(match, draw, font, max_net, '富', (255, 192, 30))
+        if max_xpm[1] > 0:
+            self.draw_title(match, draw, font, max_xpm, '睿', (30, 30, 255))
+        if max_stuns[1] > 0:
+            self.draw_title(match, draw, font, max_stuns, '控', (255, 0, 128))
+        if max_hero_damage[1] > 0:
+            self.draw_title(match, draw, font, max_hero_damage, '爆', (192, 0, 255))
         if max_kills[1] > 0:
             self.draw_title(match, draw, font, max_kills, '破', (224, 36, 36))
         if max_deaths[1] > 0:
             self.draw_title(match, draw, font, max_deaths, '鬼', (192, 192, 192))
         if max_assists[1] > 0:
             self.draw_title(match, draw, font, max_assists, '助', (0, 132, 66))
-        if max_hero_damage[1] > 0:
-            self.draw_title(match, draw, font, max_hero_damage, '爆', (192, 0, 255))
         if max_tower_damage[1] > 0:
             self.draw_title(match, draw, font, max_tower_damage, '拆', (128, 0, 255))
-        if max_stuns[1] > 0:
-            self.draw_title(match, draw, font, max_stuns, '控', (255, 0, 128))
         if max_healing[1] > 0:
             self.draw_title(match, draw, font, max_healing, '奶', (0, 228, 120))
         if max_hurt[1] > 0:
             self.draw_title(match, draw, font, max_hurt, '耐', (112, 146, 190))
         if min_participation[1] < 999:
             self.draw_title(match, draw, font, min_participation, '摸', (200, 190, 230))
-
-        draw.text(
-            (10, 860),
-            'MVP：击杀 * 5 + 助攻 * 3 + 控制时间 * 0.5 + 造成伤害 * 0.001 + 建筑伤害 * 0.002 + 治疗量 * 0.002，胜利且最高者',
-            font=font,
-            fill=(128, 128, 128)
-        )
 
         draw.text(
             (10, 880),
