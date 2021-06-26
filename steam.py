@@ -454,9 +454,11 @@ class Dota2:
                 return match
             received = match['players'][0]['damage_inflictor_received']
         except Exception as e:
-            print('{} {} {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id, e))
+            attempts = ''
             if match_id in steamdata['DOTA2_matches_pool']:
                 steamdata['DOTA2_matches_pool'][match_id]['request_attempts'] += 1
+                attempts = '（第{}次）'.format(steamdata['DOTA2_matches_pool'][match_id]['request_attempts'])
+            print('{} {}{} {}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), match_id, attempts, e))
             dumpjson(steamdata, STEAM)
             return {}
         if received is None:
