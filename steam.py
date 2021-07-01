@@ -507,7 +507,7 @@ class Dota2:
 
     def init_player(self, player):
         if not player.get('net_worth'):
-            player['net_worth'] = 0
+            player['net_worth'] = player.get('total_gold') or 0
         if not player.get('total_xp'):
             player['total_xp'] = 0
         if not player.get('damage_inflictor_received'):
