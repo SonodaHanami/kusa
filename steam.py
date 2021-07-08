@@ -463,7 +463,9 @@ class Dota2:
             return {}
         if received is None:
             # 比赛分析结果不完整
-            job_id = steamdata['DOTA2_matches_pool'][match_id].get('job_id')
+            job_id = None
+            if match_id in steamdata['DOTA2_matches_pool']:
+                job_id = steamdata['DOTA2_matches_pool'][match_id].get('job_id')
             if job_id:
                 # 存在之前请求分析的job_id，则查询这个job是否已完成
                 j = requests.get(OPENDOTA_REQUEST.format(job_id)).json()
@@ -520,6 +522,8 @@ class Dota2:
             player['purchase_log'] = []
         if not player.get('item_usage'):
             player['item_usage'] = {}
+        if not player.get('item_uses'):
+            player['item_uses'] = {}
 
     def draw_title(self, match, draw, font, item, title, color):
         idx = item[0]
@@ -851,11 +855,11 @@ class Dota2:
                                 font=font, fill=(192, 192, 192)
                             )
 
-                s = 1 if 'ultimate_scepter' in p['item_usage'] else 0
+                s = 1 if 'ultimate_scepter' in p['item_usage'] or 'ultimate_scepter_roshan' in p['item_uses'] else 0
                 scepter_img = self.get_image(f'scepter_{s}.png')
                 scepter_img = scepter_img.resize((20, 20), Image.ANTIALIAS)
                 image.paste(scepter_img, (770 , 170 + slot * 60 + idx * 65))
-                s = 1 if 'aghanims_shard' in p['item_usage'] else 0
+                s = 1 if 'aghanims_shard' in p['item_usage'] or 'aghanims_shard_roshan' in p['item_uses'] else 0
                 shard_img = self.get_image(f'shard_{s}.png')
                 shard_img = shard_img.resize((20, 11), Image.ANTIALIAS)
                 image.paste(shard_img, (770 , 190 + slot * 60 + idx * 65))
