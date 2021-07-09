@@ -17,10 +17,14 @@ taowa = '我俺你汝是谁爸妈爹娘父母爷奶姥'
 qunyou = '群友'
 MEMBER = os.path.expanduser('~/.kusa/member.json')
 
+DEFAULT_DATA = {}
 
 class Whois:
     def __init__(self, **kwargs):
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Whois')
+
+        if not os.path.exists(MEMBER):
+            dumpjson(DEFAULT_DATA, MEMBER)
 
         self._rosters = {}
         self._update()

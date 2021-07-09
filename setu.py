@@ -23,6 +23,10 @@ TEMP_IMG = os.path.expanduser('~/.kusa/setu/temp{}.png')
 MAX_TIME = 5
 JIESE_LIMIT = 3
 
+DEFAULT_DATA = {
+    'jiese': {},
+}
+
 class Setu:
     def __init__(self, **kwargs):
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Setu')
@@ -30,6 +34,8 @@ class Setu:
         self.api = kwargs['bot_api']
 
         mkdir_if_not_exists(SETU_PATH)
+        if not os.path.exists(SETU):
+            dumpjson(DEFAULT_DATA, SETU)
 
         self.last = {}
 

@@ -10,6 +10,10 @@ CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
 MAHIRU = os.path.expanduser('~/.kusa/mahiru.json')
 
+DEFAULT_DATA = {
+    'jobs': [],
+}
+
 class Mahiru:
     # 不也挺好吗.jpg
     Passive = False
@@ -21,6 +25,8 @@ class Mahiru:
 
         self.api = kwargs['bot_api']
         self.MINUTE = random.randint(10, 30)
+        if not os.path.exists(MAHIRU):
+            dumpjson(DEFAULT_DATA, MAHIRU)
 
     async def execute_async(self, message):
         msg = message['raw_message'].strip()

@@ -10,11 +10,19 @@ BILIBILI = os.path.expanduser("~/.kusa/bilibili.json")
 BANGUMI_API = 'http://bangumi.bilibili.com/web_api/timeline_global'
 MAX_RETRIES = 5
 
+DEFAULT_DATA = {
+    'bangumi_subscribe_groups': [],
+    'timeline': [],
+}
+
 class Bangumi:
     def __init__(self, **kwargs):
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Bangumi')
 
         self.api = kwargs['bot_api']
+
+        if not os.path.exists(BILIBILI):
+            dumpjson(DEFAULT_DATA, BILIBILI)
 
     async def execute_async(self, message):
         msg = message['raw_message']

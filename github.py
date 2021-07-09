@@ -13,6 +13,9 @@ CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
 
 GITHUB = os.path.expanduser('~/.kusa/github.json')
+COMMITS_ATOM = 'https://github.com/{}/commits.atom'
+
+DEFAULT_DATA = {}
 '''
 githubdata = {
     repository_name_1: {
@@ -35,13 +38,14 @@ githubdata = {
 }
 '''
 
-COMMITS_ATOM = 'https://github.com/{}/commits.atom'
-
 class Github:
     def __init__(self, **kwargs):
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Github')
 
         self.api = kwargs['bot_api']
+
+        if not os.path.exists(GITHUB):
+            dumpjson(DEFAULT_DATA, GITHUB)
 
         self.get_all_commits_update()
 
@@ -117,12 +121,13 @@ class Github:
             commit_count += count
             force_pushed.update(force)
 
-        print('{} 共查询到{}个提交，其中有{}个更新'.format(
-                datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
-                commit_count,
-                len(updates)
+        if githubdata:
+            print('{} 共查询到{}个提交，其中有{}个更新'.format(
+                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                    commit_count,
+                    len(updates)
+                )
             )
-        )
 
         for repo, item in githubdata.items():
             for commit in updates:

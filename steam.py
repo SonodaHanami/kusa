@@ -30,6 +30,13 @@ OPENDOTA_REQUEST = 'https://api.opendota.com/api/request/{}'
 OPENDOTA_MATCHES = 'https://api.opendota.com/api/matches/{}'
 OPENDOTA_PLAYERS = 'https://api.opendota.com/api/players/{}'
 
+DEFAULT_DATA = {
+    'DOTA2_matches_pool': {},
+    'players': {},
+    'subscribe_groups': [],
+    'subscribers': {},
+}
+
 class Steam:
     Passive = False
     Active = True
@@ -38,12 +45,14 @@ class Steam:
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
         self.whois = kwargs['whois']
+        self.dota2 = Dota2()
+        self.MINUTE = random.randint(0, 59)
 
         mkdir_if_not_exists(DOTA2_MATCHES)
+        if not os.path.exists(STEAM):
+            dumpjson(DEFAULT_DATA, STEAM)
 
-        self.MINUTE = random.randint(0, 59)
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Steam，MINUTE={}'.format(self.MINUTE))
-        self.dota2 = Dota2()
 
 
     async def execute_async(self, message):

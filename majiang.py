@@ -23,6 +23,18 @@ API_URL = {
     '4': MS_PPW_4,
 }
 
+DEFAULT_DATA = {
+    'subscribe_groups': [],
+    'majsoul': {
+        'subscribers': {},
+        'players': {}
+    },
+    'tenhou': {
+        'subscribers': {},
+        'players': {}
+    },
+}
+
 GAME_MODE = {
     8:  '金之间 四人东',
     9:  '金之间 四人南',
@@ -59,6 +71,9 @@ class Majiang:
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Majiang')
 
         self.api = kwargs['bot_api']
+
+        if not os.path.exists(MAJIANG):
+            dumpjson(DEFAULT_DATA, MAJIANG)
 
         self.majsoul = Majsoul()
         self.tenhou  = Tenhou()
