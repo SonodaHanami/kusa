@@ -56,6 +56,8 @@ ZONE_TAG = {
 
 class Majiang:
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Majiang')
+
         self.api = kwargs['bot_api']
 
         self.majsoul = Majsoul()
@@ -271,7 +273,7 @@ class Majsoul:
                         wind = '东南西北'[mp[1] % 10]
                         score = str(mp[1] // 10 * 10)
                         mp_result = [rank, wind, mp[0], score]
-                        if score < 0:
+                        if mp[1] < 0:
                             mp_result.append('飞了！')
                         tosend.append(' '.join(mp_result))
 

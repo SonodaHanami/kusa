@@ -17,6 +17,8 @@ class Mahiru:
     Request = False
 
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Mahiru')
+
         self.api = kwargs['bot_api']
         self.MINUTE = random.randint(10, 30)
 

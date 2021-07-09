@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from apscheduler.triggers.cron import CronTrigger
 from PIL import Image, ImageDraw, ImageFont
 
-from . import whois
 from .DOTA2_dicts import *
 from .utils import *
 
@@ -38,11 +37,12 @@ class Steam:
 
     def __init__(self, **kwargs):
         self.api = kwargs['bot_api']
+        self.whois = kwargs['whois']
 
         mkdir_if_not_exists(DOTA2_MATCHES)
 
         self.MINUTE = random.randint(0, 59)
-        print('Steam初始化，MINUTE={}'.format(self.MINUTE))
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Steam，MINUTE={}'.format(self.MINUTE))
         self.dota2 = Dota2()
 
 
@@ -143,8 +143,7 @@ class Steam:
                 sids = ','.join(str(p) for p in players_in_group)
             else:
                 is_solo = True
-                wi = whois.Whois()
-                obj = wi.object_explainer(group, user, name)
+                obj = self.whois.object_explainer(group, user, name)
                 name = obj['name'] or name
                 steam_info = steamdata['players'].get(steamdata['subscribers'].get(obj['uid']))
                 if steam_info:
@@ -188,8 +187,7 @@ class Steam:
                 players_in_group = list(set(players_in_group))
             else:
                 is_solo = True
-                wi = whois.Whois()
-                obj = wi.object_explainer(group, user, name)
+                obj = self.whois.object_explainer(group, user, name)
                 name = obj['name'] or name
                 id3 = steamdata['subscribers'].get(obj['uid'])
                 if not id3:
@@ -221,8 +219,7 @@ class Steam:
                 return '唔得，一个一个查'
             steamdata = loadjson(STEAM)
             memberdata = loadjson(MEMBER)
-            wi = whois.Whois()
-            obj = wi.object_explainer(group, user, name)
+            obj = self.whois.object_explainer(group, user, name)
             name = obj['name'] or name
             id3 = steamdata['subscribers'].get(obj['uid'])
             if not id3:

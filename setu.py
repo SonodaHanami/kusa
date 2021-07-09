@@ -25,6 +25,8 @@ JIESE_LIMIT = 3
 
 class Setu:
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Setu')
+
         self.api = kwargs['bot_api']
 
         mkdir_if_not_exists(SETU_PATH)

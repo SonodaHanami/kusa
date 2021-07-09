@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+from datetime import datetime
 from functools import reduce
 from random import randint as ri
 
@@ -36,7 +37,11 @@ class Kusa:
     Request = False
 
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化kusa，草！')
+
         self.api = kwargs['bot_api']
+        self.whois = whois.Whois(**kwargs)
+        kwargs.update({'whois': self.whois})
 
         self.kusa_modules = [
             bilibili.Bangumi(**kwargs),
@@ -46,10 +51,12 @@ class Kusa:
             roll.Roll(**kwargs),
             setu.Setu(**kwargs),
             steam.Steam(**kwargs),
-            whois.Whois(**kwargs),
+            self.whois,
         ]
 
         self.joker_enabled = []
+
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化kusa完成！')
 
     def jobs(self):
         jobs = []

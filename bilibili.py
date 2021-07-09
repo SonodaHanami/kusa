@@ -12,6 +12,8 @@ MAX_RETRIES = 5
 
 class Bangumi:
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Bangumi')
+
         self.api = kwargs['bot_api']
 
     async def execute_async(self, message):

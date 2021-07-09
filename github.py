@@ -39,6 +39,8 @@ COMMITS_ATOM = 'https://github.com/{}/commits.atom'
 
 class Github:
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Github')
+
         self.api = kwargs['bot_api']
 
         self.get_all_commits_update()

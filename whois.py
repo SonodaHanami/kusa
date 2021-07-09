@@ -20,6 +20,8 @@ MEMBER = os.path.expanduser('~/.kusa/member.json')
 
 class Whois:
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Whois')
+
         self._rosters = {}
         self._update()
 

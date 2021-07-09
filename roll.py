@@ -1,5 +1,6 @@
 import random
 import re
+from datetime import datetime
 from random import randint as ri
 
 DEFAULT_PLANE = 6
@@ -8,6 +9,8 @@ MAX_PLANE = 1024
 
 class Roll:
     def __init__(self, **kwargs):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Roll')
+
         self.api = kwargs['bot_api']
         self.plane = DEFAULT_PLANE
 
