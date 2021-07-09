@@ -3,6 +3,8 @@
 
 ## 使用方法
 
+首先 [部署一个可以正常运行的 **yobot 源码版**](https://yobot.win/install/mirai/) ，部署完之后：
+
 ```sh
 # 在 ybplugins 目录下克隆本项目
 cd yobot/src/client/ybplugins
@@ -14,9 +16,19 @@ pip3 install -r requirements.txt --user
 # 国内可加上参数 -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
-然后导入，请看[这个例子](https://github.com/SonodaHanami/yobot/commit/a64af42dd43cd25ad04b4aabc91d06ad95a16aba)
+然后将 kusa 导入 yobot ，请看[这个例子](https://github.com/SonodaHanami/yobot/commit/a64af42dd43cd25ad04b4aabc91d06ad95a16aba)
 
-第一次启动后会在 kusa 文件夹下自动生成 config.json，修改它，填入BOT的QQ号、管理员的QQ号和需要用到的APIKEY
+启动 yobot ，第一次启动 kusa 后会在 kusa 文件夹下自动生成 config.json，修改它
+```json
+{
+    "ADMIN": "123456789",   // 填写管理员的QQ号
+    "BOT": "987654321",     // 填写BOT的QQ号
+    "SETU_APIKEY": "",      // 填写LOLICON.APP的APIKEY
+    "STEAM_APIKEY": ""      // 填写Steam的APIKEY
+}
+```
+
+然后重新启动yobot
 
 ## 功能表
 下次一定写
