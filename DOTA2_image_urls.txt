@@ -20,7 +20,7 @@ https://steamcdn-a.akamaihd.net/apps/dota2/images/heroes/rattletrap_full.png
 https://steamcdn-a.akamaihd.net/apps/dota2/images/heroes/crystal_maiden_full.png
 https://steamcdn-a.akamaihd.net/apps/dota2/images/heroes/dark_seer_full.png
 https://steamcdn-a.akamaihd.net/apps/dota2/images/heroes/dark_willow_full.png
-https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/dawnbreaker.png
+https://github.com/SonodaHanami/kusa/raw/docs/dawnbreaker_breaker.png
 https://steamcdn-a.akamaihd.net/apps/dota2/images/heroes/dazzle_full.png
 https://steamcdn-a.akamaihd.net/apps/dota2/images/heroes/death_prophet_full.png
 https://steamcdn-a.akamaihd.net/apps/dota2/images/heroes/disruptor_full.png
@@ -538,3 +538,7 @@ https://www.opendota.com/assets/images/dota2/rank_icons/rank_star_2.png
 https://www.opendota.com/assets/images/dota2/rank_icons/rank_star_3.png
 https://www.opendota.com/assets/images/dota2/rank_icons/rank_star_4.png
 https://www.opendota.com/assets/images/dota2/rank_icons/rank_star_5.png
+https://github.com/SonodaHanami/kusa/raw/docs/shard_0.png
+https://github.com/SonodaHanami/kusa/raw/docs/shard_1.png
+https://github.com/SonodaHanami/kusa/raw/docs/scepter_0.png
+https://github.com/SonodaHanami/kusa/raw/docs/scepter_1.png
