@@ -9,7 +9,7 @@ from random import randint as ri
 from .utils import *
 from . import (
     bilibili, github, mahiru, majiang, roll,
-    setu, steam, whois,
+    setu, whois,
 )
 
 
@@ -50,7 +50,6 @@ class Kusa:
             majiang.Majiang(**kwargs),
             roll.Roll(**kwargs),
             setu.Setu(**kwargs),
-            steam.Steam(**kwargs),
             self.whois,
         ]
 
