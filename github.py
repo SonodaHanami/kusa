@@ -162,8 +162,9 @@ class Github:
         last = githubdata[repo]['commits'][0] if githubdata[repo].get('commits') else None
         hashes = [c['hash'] for c in commits]
         if last is None:
-            print('Github订阅初始化：{}'.format(repo))
+            print('{} Github订阅初始化：{}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), repo))
             githubdata[repo]['commits'] = hashes
+            dumpjson(githubdata, GITHUB)
             return count, [], force
         if last in hashes:
             idx = hashes.index(last)
