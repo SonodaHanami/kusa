@@ -135,7 +135,7 @@ class Github:
                     for group in item['subscribe_groups']:
                         news.append({
                             'group': group,
-                            'msg'  : '{} {}提交了{}到{}'.format(
+                            'msg'  : '[{}] {}提交了{}到{}'.format(
                                 commit['time'], commit['author'], commit['msg'], commit['repo']
                             )
                         })
@@ -143,7 +143,7 @@ class Github:
                 for group in item['subscribe_groups']:
                     news.append({
                         'group': group,
-                        'msg'  : '{} {}个提交被舍弃，同时{}个新提交被强制推送'.format(
+                        'msg'  : '[{}] {}个提交被舍弃，同时{}个新提交被强制推送'.format(
                             repo, force_pushed[repo][0], force_pushed[repo][1]
                         )
                     })
