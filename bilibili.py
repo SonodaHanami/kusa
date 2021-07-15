@@ -24,6 +24,8 @@ class Bangumi:
         if not os.path.exists(BILIBILI):
             dumpjson(DEFAULT_DATA, BILIBILI)
 
+        self.get_data_update()
+
     async def execute_async(self, message):
         msg = message['raw_message']
         group = str(message.get("group_id", ''))
@@ -72,21 +74,24 @@ class Bangumi:
         job = (trigger, self.get_anime_update)
         return (job,)
 
+    def get_data_update(self):
+        res = []
+        retry = 0
+        while not res and retry <= MAX_RETRIES:
+            try:
+                res = json.loads(requests.get(BANGUMI_API).text)['result']
+            except Exception as e:
+                print(e)
+            finally:
+                retry += 1
+        bilibilidata = loadjson(BILIBILI)
+        bilibilidata['timeline'] = res
+        dumpjson(bilibilidata, BILIBILI)
+
 
     async def get_anime_update(self):
         if datetime.now().hour == 0 and datetime.now().minute == 0:
-            res = []
-            retry = 0
-            while not res and retry <= MAX_RETRIES:
-                try:
-                    res = json.loads(requests.get(BANGUMI_API).text)['result']
-                except Exception as e:
-                    print(e)
-                finally:
-                    retry += 1
-            bilibilidata = loadjson(BILIBILI)
-            bilibilidata['timeline'] = res
-            dumpjson(bilibilidata, BILIBILI)
+            self.get_data_update()
         sends = []
         bilibilidata = loadjson(BILIBILI)
         groups = bilibilidata['bangumi_subscribe_groups']
