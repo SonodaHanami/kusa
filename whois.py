@@ -54,19 +54,14 @@ class Whois:
             if prm and prm[1] and prm[2]:
                 return self.alias_equals(group, user, prm[1], prm[2])
 
-        if atbot and msg == '是谁':
+        if atbot and (msg == '是谁？' or msg == '是谁?'):
             return self.whois(group, user, ATBOT)
-        if not atbot and re.match('.*是谁', msg):
+        if not atbot and re.match('.*是谁[\?？]', msg):
             try:
-                obj = re.match('(.+)是谁', msg)[1]
+                obj = re.match('(.+)是谁[\?？]', msg)[1]
                 return self.whois(group, user, obj)
             except:
                 return IDK
-        if msg.startswith('谁是'):
-            if msg[2:]:
-                return self.whois(group, user, msg[2:])
-            else:
-                return 'ん？'
 
         if atbot and msg.startswith('我不是'):
             return self.del_alias(group, user, msg[3:])
