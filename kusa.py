@@ -161,6 +161,15 @@ class Kusa:
             replys.append(prm[1] if ri(1, 2) == 1 else f'不{prm[1]}')
         if '有没有' in msg:
             replys.append('有' if ri(1, 2) == 1 else '没有')
+        prm = re.search('(.)(.+?)还是\\1(.+?)[？?]', msg)
+        if prm:
+            r = ri(1, 100)
+            if r <= 45:
+                replys.append('{}{}！'.format(prm[1], prm[2]))
+            elif r <= 90:
+                replys.append('{}{}！'.format(prm[1], prm[3]))
+            else:
+                replys.append('都不{}！'.format(prm[1]))
 
         if ri(1, 80) == 1 and len(msg) > 1 and '[CQ:' not in msg:
             if ri(1, 2) == 1:
