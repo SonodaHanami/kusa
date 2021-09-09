@@ -170,6 +170,11 @@ class Kusa:
                 replys.append('{}{}！'.format(prm[1], prm[3]))
             else:
                 replys.append('都不{}！'.format(prm[1]))
+        else:
+            prm = re.search('(.+?)还是(.+?)[？?]', msg)
+            if prm:
+                r = ri(1, 2)
+                replys.append('{}！'.format(prm[r]))
 
         if ri(1, 80) == 1 and len(msg) > 1 and '[CQ:' not in msg:
             if ri(1, 2) == 1:
