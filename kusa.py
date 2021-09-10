@@ -217,12 +217,13 @@ class Kusa:
                 prevmsg[group].remove(prevmsg[group][idx])
         else:
             if idx is not None:
-                prevmsg[group][idx][msg] += 1
-                if prevmsg[group][idx][msg] >= ri(MIN_TIME_TO_REPEAT, MAX_TIME_TO_REPEAT):
-                    await self.api.send_group_msg(group_id=group, message=msg)
-                    prevmsg[group].remove(prevmsg[group][idx])
-                else:
-                    prevmsg[group].append(prevmsg[group].pop(idx))
+                if prevmsg[group][idx][msg] > 0:
+                    prevmsg[group][idx][msg] += 1
+                    if prevmsg[group][idx][msg] >= ri(MIN_TIME_TO_REPEAT, MAX_TIME_TO_REPEAT):
+                        await self.api.send_group_msg(group_id=group, message=msg)
+                        prevmsg[group][idx][msg] = -1
+                    else:
+                        prevmsg[group].append(prevmsg[group].pop(idx))
             else:
                 prevmsg[group].append({msg: 1})
         while len(prevmsg[group]) > MAX_MESSAGE_NUM:
