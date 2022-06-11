@@ -182,6 +182,11 @@ class Majiang:
                         result += '失败\n初始化玩家信息失败'
                         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化玩家信息失败', e)
                 dumpjson(madata, MAJIANG)
+                memberdata = loadjson(MEMBER)
+                if group not in madata['subscribe_groups']:
+                    result += '\nWARNING: 本群未订阅麻将，即使绑定成功也不会播报该玩家的比赛结果'
+                if not memberdata.get(group) or not memberdata[group].get(user):
+                    result += '\nWARNING: 你不在群友列表中，即使绑定成功也不会播报该玩家的比赛结果'
                 return result.format(pid)
             except Exception as e:
                 print(e)
@@ -230,6 +235,11 @@ class Majiang:
                         'subscribers': [user]
                     }
                 dumpjson(madata, MAJIANG)
+                memberdata = loadjson(MEMBER)
+                if group not in madata['subscribe_groups']:
+                    result += '\nWARNING: 本群未订阅麻将，即使绑定成功也不会播报该玩家的比赛结果'
+                if not memberdata.get(group) or not memberdata[group].get(user):
+                    result += '\nWARNING: 你不在群友列表中，即使绑定成功也不会播报该玩家的比赛结果'
                 return result.format(pid)
             except:
                 return usage
@@ -531,7 +541,7 @@ class Tenhou:
             if j['list'][-1] and int(j['list'][-1].get('starttime')) > madata['tenhou']['players'][pid]['last_end']:
                 print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '发现最近比赛更新！')
                 match = j['list'][-1]
-                madata['tenhou']['players'][pid]['last_end'] = int(match.get('starttime'))
+                madata['tenhou']['players'][pid]['last_end'] = int(match.get('starttime')) + int(match.get('during')) * 60
                 tosend = []
                 start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(match.get('starttime'))))
                 duration = match.get('during')
