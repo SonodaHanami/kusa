@@ -131,39 +131,56 @@ class Majiang:
         prm = re.match('(怎么)?绑定 *雀魂(.*)', msg, re.I)
         if prm:
             usage = '使用方法：\n绑定雀魂 雀魂牌谱屋数字ID'
-            result = '绑定{}成功'
+            result = '绑定{}'
             try:
                 if prm[1]:
                     return usage
                 pid = str(int(prm[2]))
                 madata = loadjson(MAJIANG)
+                await self.api.send_group_msg(
+                    group_id=message['group_id'],
+                    message=f'正在尝试绑定并初始化玩家信息',
+                )
                 # 之前已经绑定过
                 if madata['majsoul']['subscribers'].get(user):
                     old_id = madata['majsoul']['subscribers'][user]
                     if old_id != pid:
+                        del madata['majsoul']['subscribers'][user]
                         madata['majsoul']['players'][old_id]['subscribers'].remove(user)
                         if not madata['majsoul']['players'][old_id]['subscribers']:
                             del madata['majsoul']['players'][old_id]
-                        result += f'\n已自动解除绑定{old_id}'
-                madata['majsoul']['subscribers'][user] = pid
+                        result = f'已自动解除绑定{old_id}\n' + result
                 if madata['majsoul']['players'].get(pid):
+                    madata['majsoul']['subscribers'][user] = pid
                     madata['majsoul']['players'][pid]['subscribers'].append(user)
                     madata['majsoul']['players'][pid]['subscribers'] = list(set(madata['majsoul']['players'][pid]['subscribers']))
+                    result += '成功，玩家信息已存在，跳过初始化'
                 else:
-                    madata['majsoul']['players'][pid] = {
-                        'nickname': '',
-                        '3': {
-                            'last_end': 0,
-                            'rank': 0,
-                            'score': 0,
-                        },
-                        '4': {
-                            'last_end': 0,
-                            'rank': 0,
-                            'score': 0,
-                        },
-                        'subscribers': [user]
-                    }
+                    try:
+                        rank = self.majsoul.get_player_rank(pid)
+                        if rank:
+                            result += '成功\n'
+                            madata['majsoul']['subscribers'][user] = pid
+                            madata['majsoul']['players'][pid] = {
+                                'nickname': rank['nickname'],
+                                '3': {
+                                    'last_end': rank['end_3'],
+                                    'rank': rank['rank_3'],
+                                    'score': rank['score_3'],
+                                },
+                                '4': {
+                                    'last_end': rank['end_4'],
+                                    'rank': rank['rank_4'],
+                                    'score': rank['score_4'],
+                                },
+                                'subscribers': [user]
+                            }
+                        else:
+                            result += '失败\n'
+                        result += self.majsoul.get_rank_message(rank)
+                    except Exception as e:
+                        result += '失败\n初始化玩家信息失败'
+                        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化玩家信息失败', e)
                 dumpjson(madata, MAJIANG)
                 return result.format(pid)
             except Exception as e:
