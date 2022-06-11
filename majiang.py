@@ -294,7 +294,9 @@ class Majiang:
     def jobs(self):
         trigger = CronTrigger(minute='*', second='45')
         job = (trigger, self.send_news_async)
-        return (job,)
+        trigger = CronTrigger(hour='5', minute='15')
+        majsoul_check = (trigger, self.majsoul.check_rank)
+        return (job, majsoul_check)
 
     async def send_news_async(self):
         minute = datetime.now().minute
@@ -326,7 +328,7 @@ class Majsoul:
     def get_account_zone(self, account_id):
         if not account_id:
             return 0
-        prefix = account_id >> 23
+        prefix = int(account_id) >> 23
         if 0 <= prefix <= 6:
             return 1
         if 7 <= prefix <= 12:
@@ -426,6 +428,54 @@ class Majsoul:
             s4 = '没有查询到四麻段位'
         return '{}，{}，{}'.format(s1, s3, s4)
 
+    def check_rank(self):
+        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '自动校正雀魂玩家段位信息')
+        madata = loadjson(MAJIANG)
+        changed = False
+        check_message = '将玩家{}的{}由{}校正为{}'
+        for pid in madata['majsoul']['players']:
+            rank = self.get_player_rank(pid)
+            nickname = madata['majsoul']['players'][pid].get('nickname')
+            if nickname != rank['nickname']:
+                print(
+                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                    check_message.format(pid, 'nickname', nickname, rank['nickname'])
+                )
+                madata['majsoul']['players'][pid]['nickname'] = rank['nickname']
+                changed = True
+            if madata['majsoul']['players'][pid]['3']['rank'] != rank['rank_3']:
+                print(
+                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                    check_message.format(pid, 'rank_3', madata['majsoul']['players'][pid]['3']['rank'], rank['rank_3'])
+                )
+                madata['majsoul']['players'][pid]['3']['rank'] = rank['rank_3']
+                changed = True
+            if madata['majsoul']['players'][pid]['3']['score'] != rank['score_3']:
+                print(
+                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                    check_message.format(pid, 'score_3', madata['majsoul']['players'][pid]['3']['score'], rank['score_3'])
+                )
+                madata['majsoul']['players'][pid]['3']['score'] = rank['score_3']
+                changed = True
+            if madata['majsoul']['players'][pid]['4']['rank'] != rank['rank_4']:
+                print(
+                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                    check_message.format(pid, 'rank_4', madata['majsoul']['players'][pid]['4']['rank'], rank['rank_4'])
+                )
+                madata['majsoul']['players'][pid]['4']['rank'] = rank['rank_4']
+                changed = True
+            if madata['majsoul']['players'][pid]['4']['score'] != rank['score_4']:
+                print(
+                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                    check_message.format(pid, 'score_4', madata['majsoul']['players'][pid]['4']['score'], rank['score_4'])
+                )
+                madata['majsoul']['players'][pid]['4']['score'] = rank['score_4']
+                changed = True
+        if changed:
+            dumpjson(madata, MAJIANG)
+            print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '校正完成')
+        else:
+            print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '无事发生')
 
     async def get_news_async(self):
         '''
@@ -464,7 +514,7 @@ class Majsoul:
                     mode = GAME_MODE.get(match.get('modeId'), '未知')
                     for mp in match.get('players'):
                         mp['nickname'] = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
-                        if str(mp['accountId']) == pid:
+                        if int(mp['accountId']) == int(pid):
                             subscriber = mp['nickname']
                     tosend.append('雀魂雷达动叻！')
                     tosend.append('{} 打了一局 [{}]'.format(subscriber, mode))
