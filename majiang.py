@@ -205,6 +205,38 @@ class Majiang:
             else:
                 return '没有找到你的绑定记录'
 
+        if msg == '查询群友的雀魂段位':
+            # await self.api.send_group_msg(
+            #     group_id=message['group_id'],
+            #     message=f'正在查询',
+            # )
+            madata = loadjson(MAJIANG)
+            memberdata = loadjson(MEMBER)
+            players_in_group = []
+            for qq, pid in madata['majsoul']['subscribers'].items():
+                if qq in memberdata[group]:
+                    players_in_group.append(pid)
+            players_in_group = list(set(players_in_group))
+            replys = []
+            for pid in players_in_group:
+                # rank = self.majsoul.get_player_rank(pid)
+                rank = {
+                    'pid': pid,
+                    'nickname': madata['majsoul']['players'][pid]['nickname'],
+                    'rank_3': madata['majsoul']['players'][pid]['3']['rank'],
+                    'rank_4': madata['majsoul']['players'][pid]['4']['rank'],
+                    'score_3': madata['majsoul']['players'][pid]['3']['score'],
+                    'score_4': madata['majsoul']['players'][pid]['4']['score'],
+                }
+                if rank:
+                    replys.append(self.majsoul.get_rank_message(rank))
+            replys.sort()
+            if len(replys) > 2:
+                replys.append('大家都有光明的未来！')
+            if replys:
+                return '\n'.join(replys)
+            else:
+                return '查不到哟'
         prm = re.match('(怎么)?绑定 *天凤(.*)', msg, re.I)
         if prm:
             usage = '使用方法：\n绑定天凤 天凤ID'
