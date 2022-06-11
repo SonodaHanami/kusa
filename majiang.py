@@ -339,6 +339,35 @@ class Majsoul:
             'score_4': score_4,
         }
 
+    def get_rank_message(self, rank_info):
+        if not rank_info.get('nickname'):
+            return '查无此人，请检查雀魂牌谱屋数字ID'
+        s1 = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(rank_info['pid'])), rank_info['nickname'])
+        rank_3 = rank_info.get('rank_3', 0)
+        rank_4 = rank_info.get('rank_4', 0)
+        score_3 = rank_info.get('score_3', 0)
+        score_4 = rank_info.get('score_4', 0)
+        if rank_3:
+            s3 = '三麻{}{}({}/{})'.format(
+                PLAYER_RANK[rank_3 // 10],
+                rank_3 % 10 or '',
+                score_3,
+                RANK_SCORE[rank_3]
+            )
+        else:
+            s3 = '没有查询到三麻段位'
+        if rank_4:
+            s4 = '四麻{}{}({}/{})'.format(
+                PLAYER_RANK[rank_4 // 10],
+                rank_4 % 10 or '',
+                score_4,
+                RANK_SCORE[rank_4]
+            )
+        else:
+            s4 = '没有查询到四麻段位'
+        return '{}，{}，{}'.format(s1, s3, s4)
+
+
     async def get_news_async(self):
         '''
         返回最新消息
