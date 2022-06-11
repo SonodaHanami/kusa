@@ -276,6 +276,69 @@ class Majsoul:
             return 3
         return 0
 
+    def get_next_rank(self, rank, offset=1):
+        ranks = list(RANK_SCORE.keys())
+        if rank not in ranks:
+            print('rank_invalid')
+            return -1
+        if rank == 21 and offset == -1:
+            print('雀士1掉无可掉')
+            return 21
+        if rank == 53 and offset == 1:
+            print('升上魂天！')
+            return 60
+        return ranks[ranks.index(rank) + offset]
+
+    def get_player_rank(self, pid):
+        now = int(datetime.now().timestamp())
+        end_3, rank_3, score_3 = now, 0, 0
+        end_4, rank_4, score_4 = now, 0, 0
+        stats_3 = requests.get(MS_PPW_STATS_3.format(pid, START, now, now // 3600)).json()
+        stats_4 = requests.get(MS_PPW_STATS_4.format(pid, START, now, now // 3600)).json()
+        nickname = stats_3.get('nickname') or stats_4.get('nickname')
+        if not nickname:
+            return {}
+
+        if stats_3.get('nickname'):
+            records = requests.get(MS_PPW_RECORDS_3.format(pid, now, START)).json()
+            if records and records[0] and records[0].get('startTime'):
+                end_3 = records[0].get('startTime')
+            rank_3 = stats_3['level']['id'] // 100 % 10 * 10 + stats_3['level']['id'] % 10
+            score_3 = stats_3['level']['score'] + stats_3['level']['delta']
+            if RANK_SCORE.get(rank_3):
+                if score_3 > RANK_SCORE[rank_3]: # 升段
+                    rank_3 = self.get_next_rank(rank_3)
+                    score_3 = RANK_SCORE[rank_3] // 2
+                if score_3 < 0: # 掉段
+                    if rank_3 != 21:
+                        rank_3 = self.get_next_rank(rank_3, -1)
+                        score_3 = RANK_SCORE[rank_3] // 2
+        if stats_4.get('nickname'):
+            records = requests.get(MS_PPW_RECORDS_4.format(pid, now, START)).json()
+            if records and records[0] and records[0].get('startTime'):
+                end_4 = records[0].get('startTime')
+            rank_4 = stats_4['level']['id'] // 100 % 10 * 10 + stats_4['level']['id'] % 10
+            score_4 = stats_4['level']['score'] + stats_4['level']['delta']
+            if RANK_SCORE.get(rank_4):
+                if score_4 > RANK_SCORE[rank_4]: # 升段
+                    rank_4 = self.get_next_rank(rank_4)
+                    score_4 = RANK_SCORE[rank_4] // 2
+                if score_4 < 0: # 掉段
+                    if rank_4 != 21:
+                        rank_4 = self.get_next_rank(rank_4, -1)
+                        score_4 = RANK_SCORE[rank_4] // 2
+
+        return {
+            'pid': pid,
+            'nickname': nickname,
+            'end_3': end_3,
+            'end_4': end_4,
+            'rank_3': rank_3,
+            'rank_4': rank_4,
+            'score_3': score_3,
+            'score_4': score_4,
+        }
+
     async def get_news_async(self):
         '''
         返回最新消息
