@@ -151,19 +151,23 @@ class Majiang:
                     madata['majsoul']['players'][pid]['subscribers'] = list(set(madata['majsoul']['players'][pid]['subscribers']))
                 else:
                     madata['majsoul']['players'][pid] = {
+                        'nickname': '',
                         '3': {
-                            'last_start_time': 0,
-                            'rank': 0
+                            'last_end': 0,
+                            'rank': 0,
+                            'score': 0,
                         },
                         '4': {
-                            'last_start_time': 0,
-                            'rank': 0
+                            'last_end': 0,
+                            'rank': 0,
+                            'score': 0,
                         },
                         'subscribers': [user]
                     }
                 dumpjson(madata, MAJIANG)
                 return result.format(pid)
-            except:
+            except Exception as e:
+                print(e)
                 return usage
 
         if msg == '解除绑定雀魂':
@@ -194,6 +198,7 @@ class Majiang:
                 if madata['tenhou']['subscribers'].get(user):
                     old_id = madata['tenhou']['subscribers'][user]
                     if old_id != pid:
+                        del madata['tenhou']['subscribers'][user]
                         madata['tenhou']['players'][old_id]['subscribers'].remove(user)
                         if not madata['tenhou']['players'][old_id]['subscribers']:
                             del madata['tenhou']['players'][old_id]
@@ -204,7 +209,7 @@ class Majiang:
                     madata['tenhou']['players'][pid]['subscribers'] = list(set(madata['tenhou']['players'][pid]['subscribers']))
                 else:
                     madata['tenhou']['players'][pid] = {
-                        'last_start_time': 0,
+                        'last_end': 0,
                         'subscribers': [user]
                     }
                 dumpjson(madata, MAJIANG)
@@ -282,13 +287,13 @@ class Majsoul:
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '雀魂雷达开始扫描')
         for pid in madata['majsoul']['players']:
             for m in ['3', '4']:
-                last_start = madata['majsoul']['players'][pid][m]['last_start_time']
-                if last_start >= now - 1200:
+                last_end = madata['majsoul']['players'][pid][m]['last_end']
+                if last_end >= now - 1200:
                     continue
                 try:
                     # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '请求雀魂玩家最近比赛')
                     end_of_today = int(datetime.now().replace(hour=23, minute=59, second=59).timestamp())
-                    url = PPW_RECORDS[m].format(pid, end_of_today, last_start)
+                    url = PPW_RECORDS[m].format(pid, end_of_today, last_end)
                     records = requests.get(url).json()
                 except Exception as e:
                     print(e)
@@ -298,15 +303,14 @@ class Majsoul:
                     continue
 
                 # print(records)
-                if records[0] and records[0].get('startTime') > last_start:
+                if records[0] and records[0].get('startTime') > last_end:
                     print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '发现最近比赛更新！', len(records))
                     match = j[0]
-                    madata['majsoul']['players'][pid][m]['last_start_time'] = match.get('startTime')
+                    madata['majsoul']['players'][pid][m]['last_end'] = match.get('endTime')
                     tosend = []
                     start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match.get('startTime')))
                     duration = match.get('endTime') - match.get('startTime')
                     mode = GAME_MODE.get(match.get('modeId'), '未知')
-                    subscriber = '不知道是谁'
                     for mp in match.get('players'):
                         mp['nickname'] = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                         if str(mp['accountId']) == pid:
@@ -403,11 +407,11 @@ class Tenhou:
         now = int(datetime.now().timestamp())
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '天凤雷达开始扫描')
         for pid in madata['tenhou']['players']:
-            if madata['tenhou']['players'][pid]['last_start_time'] >= now - 1200:
+            if madata['tenhou']['players'][pid]['last_end'] >= now - 1200:
                 continue
             try:
                 # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '请求天凤玩家最近比赛')
-                j = requests.get(TH_NODOCCHI.format(pid, madata['tenhou']['players'][pid]['last_start_time'] + 1)).json()
+                j = requests.get(TH_NODOCCHI.format(pid, madata['tenhou']['players'][pid]['last_end'] + 1)).json()
             except Exception as e:
                 print(e)
                 continue
@@ -415,10 +419,10 @@ class Tenhou:
                 # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '没有发现最近比赛更新')
                 continue
 
-            if j['list'][-1] and int(j['list'][-1].get('starttime')) > madata['tenhou']['players'][pid]['last_start_time']:
+            if j['list'][-1] and int(j['list'][-1].get('starttime')) > madata['tenhou']['players'][pid]['last_end']:
                 print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '发现最近比赛更新！')
                 match = j['list'][-1]
-                madata['tenhou']['players'][pid]['last_start_time'] = int(match.get('starttime'))
+                madata['tenhou']['players'][pid]['last_end'] = int(match.get('starttime'))
                 tosend = []
                 start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(match.get('starttime'))))
                 duration = match.get('during')
