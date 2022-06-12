@@ -6,6 +6,8 @@ from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime, timedelta
 from .utils import *
 
+logger = get_logger('kusa')
+
 BILIBILI = os.path.expanduser("~/.kusa/bilibili.json")
 BANGUMI_API = 'http://bangumi.bilibili.com/web_api/timeline_global'
 MAX_RETRIES = 5
@@ -17,7 +19,7 @@ DEFAULT_DATA = {
 
 class Bangumi:
     def __init__(self, **kwargs):
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Bangumi')
+        logger.info('初始化Bangumi')
 
         self.api = kwargs['bot_api']
 
@@ -81,7 +83,7 @@ class Bangumi:
             try:
                 res = json.loads(requests.get(BANGUMI_API).text)['result']
             except Exception as e:
-                print(e)
+                logger.warning(e)
             finally:
                 retry += 1
         bilibilidata = loadjson(BILIBILI)

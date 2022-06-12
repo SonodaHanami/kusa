@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from random import randint as ri
 from .utils import *
 
+logger = get_logger('kusa')
+
 CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
 MAJIANG = os.path.expanduser('~/.kusa/majiang.json')
@@ -92,7 +94,7 @@ ZONE_TAG = {
 
 class Majiang:
     def __init__(self, **kwargs):
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Majiang', end=' ')
+        logger.info('初始化Majiang 开始！')
 
         self.api = kwargs['bot_api']
         self.majsoul = Majsoul()
@@ -103,7 +105,7 @@ class Majiang:
         if not os.path.exists(MAJIANG):
             dumpjson(DEFAULT_DATA, MAJIANG)
 
-        print(f'完成！MINUTE={self.MINUTE}')
+        logger.info(f'初始化Majiang 完成！MINUTE={self.MINUTE}')
 
     async def execute_async(self, message):
         msg = message['raw_message']
@@ -180,7 +182,7 @@ class Majiang:
                         result += self.majsoul.get_rank_message(rank)
                     except Exception as e:
                         result += '失败\n初始化玩家信息失败'
-                        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化玩家信息失败', e)
+                        logger.warning(f'初始化玩家信息失败 {e}')
                 dumpjson(madata, MAJIANG)
                 memberdata = loadjson(MEMBER)
                 if group not in madata['subscribe_groups']:
@@ -189,7 +191,7 @@ class Majiang:
                     result += '\nWARNING: 你不在群友列表中，即使绑定成功也不会播报该玩家的比赛结果'
                 return result.format(pid)
             except Exception as e:
-                print(e)
+                logger.warning(e)
                 return usage
 
         if msg == '解除绑定雀魂':
@@ -329,7 +331,7 @@ class Majiang:
         self.MINUTE = random.randint(0, 59)
         self.DONE = True
         sends = []
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'NEXT MINUTE={self.MINUTE}')
+        logger.info(f'NEXT MINUTE={self.MINUTE}')
         for msg in news:
             for g in groups:
                 if str(g) in msg['target_groups']:
@@ -356,13 +358,13 @@ class Majsoul:
     def get_next_rank(self, rank, offset=1):
         ranks = list(RANK_SCORE.keys())
         if rank not in ranks:
-            print('rank_invalid')
+            # 无效段位
             return -1
         if rank == 21 and offset == -1:
-            print('雀士1掉无可掉')
+            # 雀士1掉无可掉
             return 21
         if rank == 53 and offset == 1:
-            print('升上魂天！')
+            # 升上魂天！
             return 60
         return ranks[ranks.index(rank) + offset]
 
@@ -445,7 +447,7 @@ class Majsoul:
         return '{}，{}，{}'.format(s1, s3, s4)
 
     def check_rank(self):
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '自动校正雀魂玩家段位信息')
+        logger.info('自动校正雀魂玩家段位信息')
         madata = loadjson(MAJIANG)
         changed = False
         check_message = '将玩家{}的{}由{}校正为{}'
@@ -453,46 +455,30 @@ class Majsoul:
             rank = self.get_player_rank(pid)
             nickname = madata['majsoul']['players'][pid].get('nickname')
             if nickname != rank['nickname']:
-                print(
-                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
-                    check_message.format(pid, 'nickname', nickname, rank['nickname'])
-                )
+                logger.info(check_message.format(pid, 'nickname', nickname, rank['nickname']))
                 madata['majsoul']['players'][pid]['nickname'] = rank['nickname']
                 changed = True
             if madata['majsoul']['players'][pid]['3']['rank'] != rank['rank_3']:
-                print(
-                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
-                    check_message.format(pid, 'rank_3', madata['majsoul']['players'][pid]['3']['rank'], rank['rank_3'])
-                )
+                logger.info(check_message.format(pid, 'rank_3', madata['majsoul']['players'][pid]['3']['rank'], rank['rank_3']))
                 madata['majsoul']['players'][pid]['3']['rank'] = rank['rank_3']
                 changed = True
             if madata['majsoul']['players'][pid]['3']['score'] != rank['score_3']:
-                print(
-                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
-                    check_message.format(pid, 'score_3', madata['majsoul']['players'][pid]['3']['score'], rank['score_3'])
-                )
+                logger.info(check_message.format(pid, 'score_3', madata['majsoul']['players'][pid]['3']['score'], rank['score_3']))
                 madata['majsoul']['players'][pid]['3']['score'] = rank['score_3']
                 changed = True
             if madata['majsoul']['players'][pid]['4']['rank'] != rank['rank_4']:
-                print(
-                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
-                    check_message.format(pid, 'rank_4', madata['majsoul']['players'][pid]['4']['rank'], rank['rank_4'])
-                )
+                logger.info(check_message.format(pid, 'rank_4', madata['majsoul']['players'][pid]['4']['rank'], rank['rank_4']))
                 madata['majsoul']['players'][pid]['4']['rank'] = rank['rank_4']
                 changed = True
             if madata['majsoul']['players'][pid]['4']['score'] != rank['score_4']:
-                print(
-                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
-                    check_message.format(pid, 'score_4', madata['majsoul']['players'][pid]['4']['score'], rank['score_4'])
-                )
+                logger.info(check_message.format(pid, 'score_4', madata['majsoul']['players'][pid]['4']['score'], rank['score_4']))
                 madata['majsoul']['players'][pid]['4']['score'] = rank['score_4']
                 changed = True
         if changed:
             dumpjson(madata, MAJIANG)
-            print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '校正完成')
+            logger.info('校正完成')
         else:
-            print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '无事发生')
-
+            logger.info('无事发生')
 
     def get_weekly_summary(self):
         news = []
@@ -515,7 +501,7 @@ class Majsoul:
                     url = PPW_RECORDS[m].format(pid, end_of_last_week, start_of_last_week)
                     records = requests.get(url).json()
                 except Exception as e:
-                    print(e)
+                    logger.warning(e)
                     continue
                 if not records:
                     # logger.info(f'{pid} {m} 没有发现任何比赛')
@@ -527,7 +513,6 @@ class Majsoul:
             for s in madata['majsoul']['subscribers']:
                 if s in memberdata[group]:
                     players_in_group.append(madata['majsoul']['subscribers'][s])
-            # print(group, players_in_group)
             summary = []
             for player in players_in_group:
                 total_matches = 0
@@ -600,7 +585,7 @@ class Majsoul:
         madata = loadjson(MAJIANG)
         memberdata = loadjson(MEMBER)
         now = int(datetime.now().timestamp())
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '雀魂雷达开始扫描')
+        logger.info('雀魂雷达开始扫描')
         records = None
         for pid in madata['majsoul']['players']:
             for m in ['3', '4']:
@@ -609,24 +594,22 @@ class Majsoul:
                 total_delta = 0
                 records = None
                 try:
-                    # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '请求雀魂玩家最近比赛')
+                    # logger.info(f'{pid} {m} 请求雀魂玩家最近比赛')
                     end_of_today = int(datetime.now().replace(hour=23, minute=59, second=59).timestamp())
                     url = PPW_RECORDS[m].format(pid, end_of_today, last_end)
                     records = requests.get(url).json()
                 except Exception as e:
-                    print(e)
+                    logger.warning(e)
                     continue
                 if not records:
-                    # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '没有发现任何比赛')
+                    # logger.info(f'{pid} {m} '没有发现任何比赛')
                     continue
 
-                # print(records)
                 if records[0] and records[0].get('startTime') > last_end:
-                    print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '发现最近比赛更新！', len(records))
+                    logger.info(f'{pid} {m} 发现最近比赛更新！ {len(records)}')
                 else:
-                    print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '没有发现最近比赛更新')
+                    logger.info(f'{pid} {m} 没有发现最近比赛更新')
                     continue
-
                 if records[0].get('endTime'):
                     madata['majsoul']['players'][pid][m]['last_end'] = records[0].get('endTime')
                 len_records = len(records)
@@ -752,7 +735,7 @@ class Majsoul:
 
         dumpjson(madata, MAJIANG)
 
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'雀魂雷达扫描到了{len(news)}个新事件')
+        logger.info(f'雀魂雷达扫描到了{len(news)}个新事件')
 
         for msg in news:
             msg['target_groups'] = []
@@ -772,22 +755,22 @@ class Tenhou:
         madata = loadjson(MAJIANG)
         memberdata = loadjson(MEMBER)
         now = int(datetime.now().timestamp())
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '天凤雷达开始扫描')
+        logger.info('天凤雷达开始扫描')
         for pid in madata['tenhou']['players']:
             if madata['tenhou']['players'][pid]['last_end'] >= now - 1200:
                 continue
             try:
-                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '请求天凤玩家最近比赛')
+                # logger.info(f'{pid} 请求天凤玩家最近比赛')
                 j = requests.get(TH_NODOCCHI.format(pid, madata['tenhou']['players'][pid]['last_end'] + 1)).json()
             except Exception as e:
-                print(e)
+                logger.warning(e)
                 continue
             if not j or not j.get('list'):
-                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '没有发现最近比赛更新')
+                # logger.info(f'{pid} 没有发现最近比赛更新')
                 continue
 
             if j['list'][-1] and int(j['list'][-1].get('starttime')) > madata['tenhou']['players'][pid]['last_end']:
-                print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '发现最近比赛更新！')
+                logger.info(f'{pid} 发现最近比赛更新！')
                 match = j['list'][-1]
                 madata['tenhou']['players'][pid]['last_end'] = int(match.get('starttime')) + int(match.get('during')) * 60
                 tosend = []
@@ -835,12 +818,12 @@ class Tenhou:
                 )
 
             else:
-                # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, '没有发现最近比赛更新')
+                # logger.info(f'{pid} 没有发现最近比赛更新')
                 pass
 
         dumpjson(madata, MAJIANG)
 
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), f'天凤雷达扫描到了{len(news)}个新事件')
+        logger.info(f'天凤雷达扫描到了{len(news)}个新事件')
 
         for msg in news:
             msg['target_groups'] = []

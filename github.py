@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from random import randint as ri
 from .utils import *
 
+logger = get_logger('kusa')
+
 CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
 
@@ -40,7 +42,7 @@ githubdata = {
 
 class Github:
     def __init__(self, **kwargs):
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Github')
+        logger.info('初始化Github')
 
         self.api = kwargs['bot_api']
 
@@ -122,12 +124,7 @@ class Github:
             force_pushed.update(force)
 
         if githubdata:
-            print('{} 共查询到{}个提交，其中有{}个更新'.format(
-                    datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
-                    commit_count,
-                    len(updates)
-                )
-            )
+            logger.info('共查询到{}个提交，其中有{}个更新'.format(commit_count, len(updates)))
 
         for repo, item in githubdata.items():
             for commit in updates:
@@ -154,7 +151,7 @@ class Github:
     def get_commit_update(self, repo):
         githubdata = loadjson(GITHUB)
         force = {}
-        print('{} 查询Github更新：{}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), repo))
+        logger.info(f'查询Github更新：{repo}')
         commits = self.get_repo_commits(repo)
         count = len(commits)
         if not commits:
@@ -162,7 +159,7 @@ class Github:
         last = githubdata[repo]['commits'][0] if githubdata[repo].get('commits') else None
         hashes = [c['hash'] for c in commits]
         if last is None:
-            print('{} Github订阅初始化：{}'.format(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), repo))
+            logger.info(f'Github订阅初始化：{repo}')
             githubdata[repo]['commits'] = hashes
             dumpjson(githubdata, GITHUB)
             return count, [], force

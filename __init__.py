@@ -24,4 +24,6 @@ mkdir_if_not_exists(os.path.expanduser('~/.kusa'))
 mkdir_if_not_exists(os.path.expanduser('~/.kusa/fonts'))
 mkdir_if_not_exists(os.path.expanduser('~/.kusa/images'))
 
+init_logger('kusa')
+
 from .kusa import Kusa

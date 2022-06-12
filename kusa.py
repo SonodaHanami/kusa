@@ -12,6 +12,7 @@ from . import (
     setu, whois,
 )
 
+logger = get_logger('kusa')
 
 CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
@@ -37,7 +38,7 @@ class Kusa:
     Request = False
 
     def __init__(self, **kwargs):
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化kusa，草！')
+        logger.info('初始化kusa 开始，草！')
 
         self.api = kwargs['bot_api']
         self.whois = whois.Whois(**kwargs)
@@ -55,7 +56,7 @@ class Kusa:
 
         self.joker_enabled = []
 
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化kusa完成！')
+        logger.info('初始化kusa 完成！')
 
     def jobs(self):
         jobs = []

@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from apscheduler.triggers.cron import CronTrigger
 from .utils import *
 
+logger = get_logger('kusa')
+
 CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
 MAHIRU = os.path.expanduser('~/.kusa/mahiru.json')
@@ -21,7 +23,7 @@ class Mahiru:
     Request = False
 
     def __init__(self, **kwargs):
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Mahiru')
+        logger.info('初始化Mahiru')
 
         self.api = kwargs['bot_api']
         self.MINUTE = random.randint(10, 30)

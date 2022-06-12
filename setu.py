@@ -9,6 +9,8 @@ from PIL import Image
 from random import randint as ri
 from .utils import *
 
+logger = get_logger('kusa')
+
 CONFIG = load_config()
 ADMIN = CONFIG['ADMIN']
 
@@ -29,7 +31,7 @@ DEFAULT_DATA = {
 
 class Setu:
     def __init__(self, **kwargs):
-        print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '初始化Setu')
+        logger.info('初始化Setu')
 
         self.api = kwargs['bot_api']
 
