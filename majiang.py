@@ -486,11 +486,13 @@ class Majsoul:
         memberdata = loadjson(MEMBER)
         now = int(datetime.now().timestamp())
         print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '雀魂雷达开始扫描')
+        records = None
         for pid in madata['majsoul']['players']:
             for m in ['3', '4']:
+                msg = ''
                 last_end = madata['majsoul']['players'][pid][m]['last_end']
-                if last_end >= now - 1200:
-                    continue
+                total_delta = 0
+                records = None
                 try:
                     # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '请求雀魂玩家最近比赛')
                     end_of_today = int(datetime.now().replace(hour=23, minute=59, second=59).timestamp())
@@ -506,9 +508,17 @@ class Majsoul:
                 # print(records)
                 if records[0] and records[0].get('startTime') > last_end:
                     print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '发现最近比赛更新！', len(records))
-                    match = j[0]
-                    madata['majsoul']['players'][pid][m]['last_end'] = match.get('endTime')
+                else:
+                    print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '没有发现最近比赛更新')
+                    continue
+
+                if records[0].get('endTime'):
+                    madata['majsoul']['players'][pid][m]['last_end'] = records[0].get('endTime')
+                len_records = len(records)
+                while(len(records)):
                     tosend = []
+                    match = records.pop(-1)
+                    # madata['majsoul']['players'][pid][m]['last_end'] = match.get('endTime')
                     start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(match.get('startTime')))
                     duration = match.get('endTime') - match.get('startTime')
                     mode = GAME_MODE.get(match.get('modeId'), '未知')
@@ -516,73 +526,114 @@ class Majsoul:
                         mp['nickname'] = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                         if int(mp['accountId']) == int(pid):
                             subscriber = mp['nickname']
-                    tosend.append('雀魂雷达动叻！')
-                    tosend.append('{} 打了一局 [{}]'.format(subscriber, mode))
-                    tosend.append('开始时间: {}'.format(start_time))
-                    tosend.append('持续时间: {}分{}秒'.format(duration // 60, duration % 60))
+                    # tosend.append('雀魂雷达动叻！')
+
+                    # 实时计算段位变动
+                    stats = requests.get(PPW_STATS[m].format(pid, START, match.get('startTime'), match.get('startTime') // 60)).json()
+                    pre_rank = stats['level']['id'] // 100 % 10 * 10 + stats['level']['id'] % 10
+                    pre_score = stats['level']['score']
+                    cur_rank = pre_rank
+                    offset = stats['level']['delta']
+                    cur_score = pre_score + offset
+                    total_delta += offset
+                    if RANK_SCORE.get(cur_rank):
+                        if cur_score >= RANK_SCORE[cur_rank]: # 升段
+                            cur_rank = self.get_next_rank(cur_rank)
+                            cur_score = RANK_SCORE[cur_rank] // 2
+                        if cur_score < 0: # 掉段
+                            if cur_rank == 21:
+                                cur_score = 0
+                            else:
+                                cur_rank = self.get_next_rank(cur_rank, -1)
+                                cur_score = RANK_SCORE[cur_rank] // 2
+                    madata['majsoul']['players'][pid][m]['rank'] = cur_rank
+                    madata['majsoul']['players'][pid][m]['score'] = cur_score
+
+                    rank_change = ''
+                    if cur_rank != pre_rank:
+                        if cur_rank:
+                            if pre_rank:
+                                word = '升' if cur_rank > pre_rank else '掉'
+                                rank_change = '，直接进行一个段的{}'.format(word)
+                            else:
+                                pass
+                                # msg += '，{}段位达到了{}{}'.format(
+                                #     '零一二三四'[int(m)] + '麻',
+                                #     PLAYER_RANK[cur_rank // 10],
+                                #     cur_rank % 10 or ''
+                                # )
+                        else:
+                            pass
+                    # msg = ''
+                    # tosend.append(msg)
+                    # tosend.append('{} 打了一局 [{}]'.format(subscriber, mode))
+                    # tosend.append('开始时间: {}'.format(start_time))
+                    # tosend.append('持续时间: {}分{}秒'.format(duration // 60, duration % 60))
                     players = []
                     wind = 0
                     playernum = len(match.get('players'))
                     for mp in match.get('players'):
                         wind += 1
                         score = mp['score'] + playernum - wind
-                        players.append((mp['nickname'], score))
+                        players.append((mp['accountId'], score))
                     players.sort(key=lambda i: i[1], reverse=True)
                     for mp in players:
-                        rank = '[{}位]'.format(players.index(mp) + 1)
-                        wind = '东南西北'[mp[1] % 10]
+                        if int(mp[0]) == int(pid):
+                            rank_in_game = '{}位'.format(players.index(mp) + 1)
                         score = str(mp[1] // 10 * 10)
-                        mp_result = [rank, wind, mp[0], score]
-                        if mp[1] < 0:
-                            mp_result.append('飞了！')
-                        tosend.append(' '.join(mp_result))
-
-                    msg = '\n'.join(tosend)
-                    news.append(
-                        {
-                            'message': msg,
-                            'user'   : madata['majsoul']['players'][pid]['subscribers']
-                        }
-                    )
-
-                    # 只有比赛更新才会有段位变动
-                    cur_rank = 0
-                    pname = '不知道是谁'
-                    for mp in match.get('players'):
-                        if str(mp['accountId']) == pid:
-                            cur_rank = mp['level'] // 100 % 10 * 10 + mp['level'] % 10
-                            pname = mp['nickname']
-                            break
-                    pre_rank = madata['majsoul']['players'][pid][m]['rank']
-                    if cur_rank != pre_rank:
-                        if cur_rank:
-                            if pre_rank:
-                                word = '升' if cur_rank > pre_rank else '掉'
-                                msg = '{} 的{}段位从{}{}{}到了{}{}'.format(
-                                    pname,
-                                    '零一二三四'[int(m)] + '麻',
-                                    PLAYER_RANK[pre_rank // 10], pre_rank % 10 or '',
-                                    word,
-                                    PLAYER_RANK[cur_rank // 10], cur_rank % 10 or ''
-                                )
-                            else:
-                                msg = '{} 的{}段位达到了{}{}'.format(
-                                    pname,
-                                    '零一二三四'[int(m)] + '麻',
-                                    PLAYER_RANK[cur_rank // 10],
-                                    cur_rank % 10 or ''
-                                )
-                            news.append({
-                                'message': msg,
-                                'user'   : madata['majsoul']['players'][pid]['subscribers']
-                            })
-                        else:
-                            pass
-                        madata['majsoul']['players'][pid][m]['rank'] = cur_rank
-
-                else:
-                    # print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), pid, m, '没有发现最近比赛更新')
-                    pass
+                        negative = '，飞了' if mp[1] < 0 else ''
+                        # wind = '？东南西北'[playernum - mp[1] % 10]
+                        # mp_result = [rank_in_game, wind, mp[0], score]
+                        # if mp[1] < 0:
+                            # mp_result.append('飞了！')
+                        # tosend.append(' '.join(mp_result))
+                    if len_records == 1:
+                        msg = '{} {}打了一局[{}]，{}{}，{}，{}{}{}，现在是{}麻{}{}({}/{})'.format(
+                            datetime.fromtimestamp(match['endTime']).strftime('[%Y-%m-%d %H:%M:%S]'),
+                            subscriber,
+                            mode,
+                            score,
+                            negative,
+                            rank_in_game,
+                            '+' if offset > 0 else '±' if offset == 0 else '',
+                            offset,
+                            rank_change,
+                            '三四'[int(m) - 3],
+                            PLAYER_RANK[cur_rank // 10],
+                            cur_rank % 10 or '',
+                            cur_score,
+                            RANK_SCORE[cur_rank],
+                        )
+                    else:
+                        msg += '{} {}打了一局[{}]，{}{}，{}，{}{}{}\n'.format(
+                            datetime.fromtimestamp(match['endTime']).strftime('[%Y-%m-%d %H:%M:%S]'),
+                            subscriber,
+                            mode,
+                            score,
+                            negative,
+                            rank_in_game,
+                            '+' if offset > 0 else '±' if offset == 0 else '',
+                            offset,
+                            rank_change,
+                        )
+                        if not len(records):
+                            msg += '{} {} {}{}，现在是{}麻{}{}({}/{})'.format(
+                                datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'),
+                                subscriber,
+                                '+' if total_delta > 0 else '±' if total_delta == 0 else '',
+                                total_delta,
+                                '三四'[int(m) - 3],
+                                PLAYER_RANK[cur_rank // 10],
+                                cur_rank % 10 or '',
+                                cur_score,
+                                RANK_SCORE[cur_rank],
+                            )
+                news.append(
+                    {
+                        'message': msg,
+                        'user'   : madata['majsoul']['players'][pid]['subscribers']
+                    }
+                )
 
         dumpjson(madata, MAJIANG)
 
