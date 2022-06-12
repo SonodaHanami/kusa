@@ -237,6 +237,20 @@ class Majiang:
                 return '\n'.join(replys)
             else:
                 return '查不到哟'
+
+        # if msg == '雀魂周报':
+        #     await self.api.send_group_msg(
+        #         group_id=message['group_id'],
+        #         message=f'正在尝试生成本群雀魂周报',
+        #     )
+        #     try:
+        #         news = self.majsoul.get_weekly_summary()
+        #         for n in news:
+        #             if n['group_id'] == group:
+        #                 return n['message']
+        #     except Exception as e:
+        #         return f'失败了！ {e}'
+
         prm = re.match('(怎么)?绑定 *天凤(.*)', msg, re.I)
         if prm:
             usage = '使用方法：\n绑定天凤 天凤ID'
@@ -296,7 +310,9 @@ class Majiang:
         job = (trigger, self.send_news_async)
         trigger = CronTrigger(hour='5', minute='15')
         majsoul_check = (trigger, self.majsoul.check_rank)
-        return (job, majsoul_check)
+        trigger = CronTrigger(day_of_week='0', hour='12', minute='3')
+        weekly_summary = (trigger, self.majsoul.get_weekly_summary)
+        return (job, majsoul_check, weekly_summary)
 
     async def send_news_async(self):
         minute = datetime.now().minute
@@ -476,6 +492,105 @@ class Majsoul:
             print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '校正完成')
         else:
             print(datetime.now().strftime('[%Y-%m-%d %H:%M:%S]'), '无事发生')
+
+
+    def get_weekly_summary(self):
+        news = []
+        madata = loadjson(MAJIANG)
+        memberdata = loadjson(MEMBER)
+        now = int(datetime.now().timestamp())
+        start_of_last_week = int((datetime.now() + timedelta(days=-datetime.now().weekday(), weeks=-1)).replace(hour=0, minute=0, second=0).timestamp())
+        end_of_last_week = start_of_last_week + 86400 * 7 - 1
+        logger.info('雀魂雷达开始生成周报')
+        # 获取所有人上周的所有比赛
+        all_records = []
+        for pid in madata['majsoul']['players']:
+            for m in ['3', '4']:
+                msg = ''
+                last_end = madata['majsoul']['players'][pid][m]['last_end']
+                total_delta = 0
+                records = None
+                try:
+                    # logger.info(f'{pid} {m} 请求雀魂玩家上周所有比赛')
+                    url = PPW_RECORDS[m].format(pid, end_of_last_week, start_of_last_week)
+                    records = requests.get(url).json()
+                except Exception as e:
+                    print(e)
+                    continue
+                if not records:
+                    # logger.info(f'{pid} {m} 没有发现任何比赛')
+                    continue
+                for record in records:
+                    all_records.append(record)
+        for group in madata['subscribe_groups']:
+            players_in_group = []
+            for s in madata['majsoul']['subscribers']:
+                if s in memberdata[group]:
+                    players_in_group.append(madata['majsoul']['subscribers'][s])
+            # print(group, players_in_group)
+            summary = []
+            for player in players_in_group:
+                total_matches = 0
+                total_delta = 0
+                for record in all_records:
+                    for rp in record['players']:
+                        if rp['accountId'] == int(player):
+                            total_matches += 1
+                            total_delta += rp['gradingScore']
+                            break
+                summary.append({
+                    'player': player,
+                    'total_matches': total_matches,
+                    'total_delta': total_delta,
+                })
+            summary.sort(key=lambda x:-x['total_matches'])
+            max_matches = summary[0]
+            total_summary = '\n'.join([
+                '{} {} 打了{}局，{}{}'.format(
+                    ZONE_TAG.get(self.get_account_zone(player['player'])),
+                    madata['majsoul']['players'][player['player']]['nickname'],
+                    player['total_matches'],
+                    '+' if player['total_delta'] > 0 else '±' if player['total_delta'] == 0 else '',
+                    player['total_delta']
+                ) for player in summary
+            ])
+            for player in summary:
+                if player['total_matches'] == 0:
+                    summary.remove(player)
+            summary.sort(key=lambda x:-x['total_delta'])
+            max_delta = summary[0]
+            min_delta = summary[-1]
+            message = '[{}] - [{}]\n雀魂周报来了！\n{}\n'.format(
+                datetime.fromtimestamp(start_of_last_week).strftime('%Y-%m-%d'),
+                datetime.fromtimestamp(end_of_last_week).strftime('%Y-%m-%d'),
+                total_summary,
+            )
+            if max_matches['total_matches'] > 0:
+                message += '\n打得最多：{} {} {}局'.format(
+                    ZONE_TAG.get(self.get_account_zone(max_matches['player'])),
+                    madata['majsoul']['players'][max_matches['player']]['nickname'],
+                    max_matches['total_matches']
+                )
+            if max_delta['total_delta'] > 0:
+                message += '\n上分最多：{} {} {}{}'.format(
+                    ZONE_TAG.get(self.get_account_zone(max_delta['player'])),
+                    madata['majsoul']['players'][max_delta['player']]['nickname'],
+                    '+' if max_delta['total_delta'] > 0 else '±' if max_delta['total_delta'] == 0 else '',
+                    max_delta['total_delta']
+                )
+            if min_delta['total_delta'] < 0:
+                message += '\n掉分最多：{} {} {}{}'.format(
+                    ZONE_TAG.get(self.get_account_zone(min_delta['player'])),
+                    madata['majsoul']['players'][min_delta['player']]['nickname'],
+                    '+' if min_delta['total_delta'] > 0 else '±' if min_delta['total_delta'] == 0 else '',
+                    min_delta['total_delta']
+                )
+            news.append({
+                'message': message,
+                'message_type': 'group',
+                'group_id': group,
+            })
+        return news
 
     async def get_news_async(self):
         '''
