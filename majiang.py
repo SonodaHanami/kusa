@@ -240,13 +240,15 @@ class Majiang:
             else:
                 return '查不到哟'
 
-        # if msg == '雀魂周报':
+        # prm = re.match('雀魂周报(.*)', msg, re.I)
+        # if prm:
         #     await self.api.send_group_msg(
         #         group_id=message['group_id'],
         #         message=f'正在尝试生成本群雀魂周报',
         #     )
         #     try:
-        #         news = self.majsoul.get_weekly_summary()
+        #         week = int(prm[1]) if prm[1] else 0
+        #         news = self.majsoul.get_weekly_summary(week)
         #         for n in news:
         #             if n['group_id'] == group:
         #                 return n['message']
@@ -480,13 +482,15 @@ class Majsoul:
         else:
             logger.info('无事发生')
 
-    def get_weekly_summary(self):
+    def get_start_of_week(self, week=0):
+        return int((datetime.now() + timedelta(days=-datetime.now().weekday(), weeks=week)).replace(hour=0, minute=0, second=0).timestamp())
+
+    def get_weekly_summary(self, week_offset=-1):
         news = []
         madata = loadjson(MAJIANG)
         memberdata = loadjson(MEMBER)
-        now = int(datetime.now().timestamp())
-        start_of_last_week = int((datetime.now() + timedelta(days=-datetime.now().weekday(), weeks=-1)).replace(hour=0, minute=0, second=0).timestamp())
-        end_of_last_week = start_of_last_week + 86400 * 7 - 1
+        start_of_week = self.get_start_of_week(week_offset)
+        end_of_week = start_of_week + 86400 * 7 - 1
         logger.info('雀魂雷达开始生成周报')
         # 获取所有人上周的所有比赛
         all_records = []
@@ -498,7 +502,7 @@ class Majsoul:
                 records = None
                 try:
                     # logger.info(f'{pid} {m} 请求雀魂玩家上周所有比赛')
-                    url = PPW_RECORDS[m].format(pid, end_of_last_week, start_of_last_week)
+                    url = PPW_RECORDS[m].format(pid, end_of_week, start_of_week)
                     records = requests.get(url).json()
                 except Exception as e:
                     logger.warning(e)
@@ -546,8 +550,8 @@ class Majsoul:
             max_delta = summary[0]
             min_delta = summary[-1]
             message = '[{}] - [{}]\n雀魂周报来了！\n{}\n'.format(
-                datetime.fromtimestamp(start_of_last_week).strftime('%Y-%m-%d'),
-                datetime.fromtimestamp(end_of_last_week).strftime('%Y-%m-%d'),
+                datetime.fromtimestamp(start_of_week).strftime('%Y-%m-%d'),
+                datetime.fromtimestamp(end_of_week).strftime('%Y-%m-%d'),
                 total_summary,
             )
             if max_matches['total_matches'] > 0:
