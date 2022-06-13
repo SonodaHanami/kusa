@@ -678,13 +678,14 @@ class Majsoul:
                     for mp in players:
                         if int(mp[0]) == int(pid):
                             rank_in_game = '{}位'.format(players.index(mp) + 1)
-                        score = str(mp[1] // 10 * 10)
-                        negative = '，飞了' if mp[1] < 0 else ''
-                        # wind = '？东南西北'[playernum - mp[1] % 10]
-                        # mp_result = [rank_in_game, wind, mp[0], score]
-                        # if mp[1] < 0:
-                            # mp_result.append('飞了！')
-                        # tosend.append(' '.join(mp_result))
+                            score = str(mp[1] // 10 * 10)
+                            negative = '，飞了' if mp[1] < 0 else ''
+                            # wind = '？东南西北'[playernum - mp[1] % 10]
+                            # mp_result = [rank_in_game, wind, mp[0], score]
+                            # if mp[1] < 0:
+                                # mp_result.append('飞了！')
+                            # tosend.append(' '.join(mp_result))
+                            break
                     if len_records == 1:
                         msg = '{} {}打了一局[{}]，{}{}，{}，{}{}{}，现在是{}麻{}{}({}/{})'.format(
                             datetime.fromtimestamp(match['endTime']).strftime('[%Y-%m-%d %H:%M:%S]'),
