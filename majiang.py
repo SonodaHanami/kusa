@@ -255,57 +255,57 @@ class Majiang:
         #     except Exception as e:
         #         return f'失败了！ {e}'
 
-        prm = re.match('(怎么)?绑定 *天凤(.*)', msg, re.I)
-        if prm:
-            usage = '使用方法：\n绑定天凤 天凤ID'
-            result = '绑定{}成功'
-            try:
-                if prm[1]:
-                    return usage
-                pid = prm[2].strip()
-                if not pid:
-                    return usage
-                madata = loadjson(MAJIANG)
-                # 之前已经绑定过
-                if madata['tenhou']['subscribers'].get(user):
-                    old_id = madata['tenhou']['subscribers'][user]
-                    if old_id != pid:
-                        del madata['tenhou']['subscribers'][user]
-                        madata['tenhou']['players'][old_id]['subscribers'].remove(user)
-                        if not madata['tenhou']['players'][old_id]['subscribers']:
-                            del madata['tenhou']['players'][old_id]
-                        result += f'\n已自动解除绑定{old_id}'
-                madata['tenhou']['subscribers'][user] = pid
-                if madata['tenhou']['players'].get(pid):
-                    madata['tenhou']['players'][pid]['subscribers'].append(user)
-                    madata['tenhou']['players'][pid]['subscribers'] = list(set(madata['tenhou']['players'][pid]['subscribers']))
-                else:
-                    madata['tenhou']['players'][pid] = {
-                        'last_end': 0,
-                        'subscribers': [user]
-                    }
-                dumpjson(madata, MAJIANG)
-                memberdata = loadjson(MEMBER)
-                if group not in madata['subscribe_groups']:
-                    result += '\nWARNING: 本群未订阅麻将，即使绑定成功也不会播报该玩家的比赛结果'
-                if not memberdata.get(group) or not memberdata[group].get(user):
-                    result += '\nWARNING: 你不在群友列表中，即使绑定成功也不会播报该玩家的比赛结果'
-                return result.format(pid)
-            except:
-                return usage
+        # prm = re.match('(怎么)?绑定 *天凤(.*)', msg, re.I)
+        # if prm:
+        #     usage = '使用方法：\n绑定天凤 天凤ID'
+        #     result = '绑定{}成功'
+        #     try:
+        #         if prm[1]:
+        #             return usage
+        #         pid = prm[2].strip()
+        #         if not pid:
+        #             return usage
+        #         madata = loadjson(MAJIANG)
+        #         # 之前已经绑定过
+        #         if madata['tenhou']['subscribers'].get(user):
+        #             old_id = madata['tenhou']['subscribers'][user]
+        #             if old_id != pid:
+        #                 del madata['tenhou']['subscribers'][user]
+        #                 madata['tenhou']['players'][old_id]['subscribers'].remove(user)
+        #                 if not madata['tenhou']['players'][old_id]['subscribers']:
+        #                     del madata['tenhou']['players'][old_id]
+        #                 result += f'\n已自动解除绑定{old_id}'
+        #         madata['tenhou']['subscribers'][user] = pid
+        #         if madata['tenhou']['players'].get(pid):
+        #             madata['tenhou']['players'][pid]['subscribers'].append(user)
+        #             madata['tenhou']['players'][pid]['subscribers'] = list(set(madata['tenhou']['players'][pid]['subscribers']))
+        #         else:
+        #             madata['tenhou']['players'][pid] = {
+        #                 'last_end': 0,
+        #                 'subscribers': [user]
+        #             }
+        #         dumpjson(madata, MAJIANG)
+        #         memberdata = loadjson(MEMBER)
+        #         if group not in madata['subscribe_groups']:
+        #             result += '\nWARNING: 本群未订阅麻将，即使绑定成功也不会播报该玩家的比赛结果'
+        #         if not memberdata.get(group) or not memberdata[group].get(user):
+        #             result += '\nWARNING: 你不在群友列表中，即使绑定成功也不会播报该玩家的比赛结果'
+        #         return result.format(pid)
+        #     except:
+        #         return usage
 
-        if msg == '解除绑定天凤':
-            madata = loadjson(MAJIANG)
-            if madata['tenhou']['subscribers'].get(user):
-                pid = madata['tenhou']['subscribers'][user]
-                madata['tenhou']['players'][pid]['subscribers'].remove(user)
-                if not madata['tenhou']['players'][pid]['subscribers']:
-                    del madata['tenhou']['players'][pid]
-                del madata['tenhou']['subscribers'][user]
-                dumpjson(madata, MAJIANG)
-                return f'解除绑定{pid}成功'
-            else:
-                return '没有找到你的绑定记录'
+        # if msg == '解除绑定天凤':
+        #     madata = loadjson(MAJIANG)
+        #     if madata['tenhou']['subscribers'].get(user):
+        #         pid = madata['tenhou']['subscribers'][user]
+        #         madata['tenhou']['players'][pid]['subscribers'].remove(user)
+        #         if not madata['tenhou']['players'][pid]['subscribers']:
+        #             del madata['tenhou']['players'][pid]
+        #         del madata['tenhou']['subscribers'][user]
+        #         dumpjson(madata, MAJIANG)
+        #         return f'解除绑定{pid}成功'
+        #     else:
+        #         return '没有找到你的绑定记录'
 
         return None
 
