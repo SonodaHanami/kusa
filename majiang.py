@@ -311,14 +311,12 @@ class Majiang:
 
     def jobs(self):
         trigger = CronTrigger(hour='9,18', minute='*/5')
-        job = (trigger, self.send_news_async)
-        trigger = CronTrigger(hour='5', minute='15')
-        majsoul_check = (trigger, self.majsoul.check_rank)
+        get_news = (trigger, self.get_news_async)
         trigger = CronTrigger(day_of_week='0', hour='12', minute='5')
-        weekly_summary = (trigger, self.majsoul.get_weekly_summary)
-        return (job, majsoul_check, weekly_summary)
+        get_weekly_summary = (trigger, self.majsoul.get_weekly_summary)
+        return (get_news, get_weekly_summary)
 
-    async def send_news_async(self):
+    async def get_news_async(self):
         minute = datetime.now().minute
         if minute == 0:
             self.DONE = False
@@ -447,40 +445,6 @@ class Majsoul:
         else:
             s4 = '没有查询到四麻段位'
         return '{}，{}，{}'.format(s1, s3, s4)
-
-    def check_rank(self):
-        logger.info('自动校正雀魂玩家段位信息')
-        madata = loadjson(MAJIANG)
-        changed = False
-        check_message = '将玩家{}的{}由{}校正为{}'
-        for pid in madata['majsoul']['players']:
-            rank = self.get_player_rank(pid)
-            nickname = madata['majsoul']['players'][pid].get('nickname')
-            if nickname != rank['nickname']:
-                logger.info(check_message.format(pid, 'nickname', nickname, rank['nickname']))
-                madata['majsoul']['players'][pid]['nickname'] = rank['nickname']
-                changed = True
-            if madata['majsoul']['players'][pid]['3']['rank'] != rank['rank_3']:
-                logger.info(check_message.format(pid, 'rank_3', madata['majsoul']['players'][pid]['3']['rank'], rank['rank_3']))
-                madata['majsoul']['players'][pid]['3']['rank'] = rank['rank_3']
-                changed = True
-            if madata['majsoul']['players'][pid]['3']['score'] != rank['score_3']:
-                logger.info(check_message.format(pid, 'score_3', madata['majsoul']['players'][pid]['3']['score'], rank['score_3']))
-                madata['majsoul']['players'][pid]['3']['score'] = rank['score_3']
-                changed = True
-            if madata['majsoul']['players'][pid]['4']['rank'] != rank['rank_4']:
-                logger.info(check_message.format(pid, 'rank_4', madata['majsoul']['players'][pid]['4']['rank'], rank['rank_4']))
-                madata['majsoul']['players'][pid]['4']['rank'] = rank['rank_4']
-                changed = True
-            if madata['majsoul']['players'][pid]['4']['score'] != rank['score_4']:
-                logger.info(check_message.format(pid, 'score_4', madata['majsoul']['players'][pid]['4']['score'], rank['score_4']))
-                madata['majsoul']['players'][pid]['4']['score'] = rank['score_4']
-                changed = True
-        if changed:
-            dumpjson(madata, MAJIANG)
-            logger.info('校正完成')
-        else:
-            logger.info('无事发生')
 
     def get_start_of_week(self, week=0):
         return int((datetime.now() + timedelta(days=-datetime.now().weekday(), weeks=week)).replace(hour=0, minute=0, second=0).timestamp())
@@ -628,6 +592,7 @@ class Majsoul:
                         mp['nickname'] = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                         if int(mp['accountId']) == int(pid):
                             subscriber = mp['nickname']
+                            madata['majsoul']['players'][pid]['nickname'] = mp['nickname']
                     # tosend.append('雀魂雷达动叻！')
 
                     # 实时计算段位变动
