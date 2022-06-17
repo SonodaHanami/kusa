@@ -589,11 +589,9 @@ class Majsoul:
                     duration = match.get('endTime') - match.get('startTime')
                     mode = GAME_MODE.get(match.get('modeId'), '未知')
                     for mp in match.get('players'):
-                        mp['nickname'] = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                         if int(mp['accountId']) == int(pid):
-                            subscriber = mp['nickname']
+                            subscriber = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                             madata['majsoul']['players'][pid]['nickname'] = mp['nickname']
-                    # tosend.append('雀魂雷达动叻！')
 
                     # 实时计算段位变动
                     stats = requests.get(PPW_STATS[m].format(pid, START, match.get('startTime'), match.get('startTime') // 60)).json()
@@ -631,8 +629,7 @@ class Majsoul:
                                 # )
                         else:
                             pass
-                    # msg = ''
-                    # tosend.append(msg)
+                    # tosend.append('雀魂雷达动叻！')
                     # tosend.append('{} 打了一局 [{}]'.format(subscriber, mode))
                     # tosend.append('开始时间: {}'.format(start_time))
                     # tosend.append('持续时间: {}分{}秒'.format(duration // 60, duration % 60))
