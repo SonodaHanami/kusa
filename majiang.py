@@ -99,7 +99,7 @@ class Majiang:
         self.api = kwargs['bot_api']
         self.majsoul = Majsoul()
         self.tenhou = Tenhou()
-        self.MINUTE = (datetime.now() + timedelta(minutes=2)).minute
+        self.MINUTE = random.randint(0, 55)
         self.DONE = False
 
         if not os.path.exists(MAJIANG):
@@ -310,11 +310,11 @@ class Majiang:
         return None
 
     def jobs(self):
-        trigger = CronTrigger(minute='*', second='45')
+        trigger = CronTrigger(hour='9,18', minute='*/5')
         job = (trigger, self.send_news_async)
         trigger = CronTrigger(hour='5', minute='15')
         majsoul_check = (trigger, self.majsoul.check_rank)
-        trigger = CronTrigger(day_of_week='0', hour='12', minute='3')
+        trigger = CronTrigger(day_of_week='0', hour='12', minute='5')
         weekly_summary = (trigger, self.majsoul.get_weekly_summary)
         return (job, majsoul_check, weekly_summary)
 
@@ -322,7 +322,7 @@ class Majiang:
         minute = datetime.now().minute
         if minute == 0:
             self.DONE = False
-        if self.DONE or minute != self.MINUTE:
+        if self.DONE or minute < self.MINUTE:
             return None
         madata = loadjson(MAJIANG)
         groups = madata.get('subscribe_groups')
@@ -330,7 +330,7 @@ class Majiang:
             return None
         news = await self.majsoul.get_news_async()
         # news = await self.majsoul.get_news_async() + await self.tenhou.get_news_async()
-        self.MINUTE = random.randint(0, 59)
+        self.MINUTE = random.randint(0, 55)
         self.DONE = True
         sends = []
         logger.info(f'NEXT MINUTE={self.MINUTE}')
