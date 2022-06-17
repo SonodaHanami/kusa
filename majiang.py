@@ -99,7 +99,7 @@ class Majiang:
         self.api = kwargs['bot_api']
         self.majsoul = Majsoul()
         self.tenhou = Tenhou()
-        self.MINUTE = random.randint(0, 55)
+        self.MINUTE = min(55, (datetime.now() + timedelta(minutes=2)).minute)
         self.DONE = False
 
         if not os.path.exists(MAJIANG):
