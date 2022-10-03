@@ -87,10 +87,12 @@ RANK_SCORE = {
 
 ZONE_TAG = {
     0: '',
-    1: 'Ⓒ',
-    2: 'Ⓙ',
-    3: 'Ⓔ',
+    1: '🇨🇳 ',
+    2: '🇯🇵 ',
+    3: '🇺🇳 ',
 }
+if CONFIG.get('MAJSOUL_PLAYER_ZONE', False) != True:
+    ZONE_TAG = {0:'', 1:'', 2:'', 3:''}
 
 class Majiang:
     def __init__(self, **kwargs):
@@ -421,7 +423,7 @@ class Majsoul:
     def get_rank_message(self, rank_info):
         if not rank_info.get('nickname'):
             return '查无此人，请检查雀魂牌谱屋数字ID'
-        s1 = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(rank_info['pid'])), rank_info['nickname'])
+        s1 = '{}{}'.format(ZONE_TAG.get(self.get_account_zone(rank_info['pid'])), rank_info['nickname'])
         rank_3 = rank_info.get('rank_3', 0)
         rank_4 = rank_info.get('rank_4', 0)
         score_3 = rank_info.get('score_3', 0)
@@ -499,7 +501,7 @@ class Majsoul:
             summary.sort(key=lambda x:-x['total_matches'])
             max_matches = summary[0]
             total_summary = '\n'.join([
-                '{} {} 打了{}局，{}{}'.format(
+                '{}{} 打了{}局，{}{}'.format(
                     ZONE_TAG.get(self.get_account_zone(player['player'])),
                     madata['majsoul']['players'][player['player']]['nickname'],
                     player['total_matches'],
@@ -519,20 +521,20 @@ class Majsoul:
                 total_summary,
             )
             if max_matches['total_matches'] > 0:
-                message += '\n打得最多：{} {} {}局'.format(
+                message += '\n打得最多：{}{} {}局'.format(
                     ZONE_TAG.get(self.get_account_zone(max_matches['player'])),
                     madata['majsoul']['players'][max_matches['player']]['nickname'],
                     max_matches['total_matches']
                 )
             if max_delta['total_delta'] > 0:
-                message += '\n上分最多：{} {} {}{}'.format(
+                message += '\n上分最多：{}{} {}{}'.format(
                     ZONE_TAG.get(self.get_account_zone(max_delta['player'])),
                     madata['majsoul']['players'][max_delta['player']]['nickname'],
                     '+' if max_delta['total_delta'] > 0 else '±' if max_delta['total_delta'] == 0 else '',
                     max_delta['total_delta']
                 )
             if min_delta['total_delta'] < 0:
-                message += '\n掉分最多：{} {} {}{}'.format(
+                message += '\n掉分最多：{}{} {}{}'.format(
                     ZONE_TAG.get(self.get_account_zone(min_delta['player'])),
                     madata['majsoul']['players'][min_delta['player']]['nickname'],
                     '+' if min_delta['total_delta'] > 0 else '±' if min_delta['total_delta'] == 0 else '',
@@ -590,7 +592,7 @@ class Majsoul:
                     mode = GAME_MODE.get(match.get('modeId'), '未知')
                     for mp in match.get('players'):
                         if int(mp['accountId']) == int(pid):
-                            subscriber = '{} {}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
+                            subscriber = '{}{}'.format(ZONE_TAG.get(self.get_account_zone(mp['accountId'])), mp['nickname'])
                             madata['majsoul']['players'][pid]['nickname'] = mp['nickname']
 
                     # 实时计算段位变动
