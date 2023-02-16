@@ -278,9 +278,9 @@ class Analysis:
                 else:
                     vurl += f"?t={time_location}"
             pubdate = strftime("%Y-%m-%d %H:%M:%S", localtime(res["pubdate"]))
-            tname = f"类型：{res['tname']} | UP：{res['owner']['name']} | 日期：{pubdate}"
-            stat = f"播放：{handle_num(res['stat']['view'])} | 弹幕：{handle_num(res['stat']['danmaku'])} | 收藏：{handle_num(res['stat']['favorite'])}\n"
-            stat += f"点赞：{handle_num(res['stat']['like'])} | 硬币：{handle_num(res['stat']['coin'])} | 评论：{handle_num(res['stat']['reply'])}"
+            tname = f"UP：{res['owner']['name']} | 类型：{res['tname']} | 日期：{pubdate}"
+            stat = f"播放：{handle_num(res['stat']['view'])} | 弹幕：{handle_num(res['stat']['danmaku'])} | 评论：{handle_num(res['stat']['reply'])}\n"
+            stat += f"点赞：{handle_num(res['stat']['like'])} | 硬币：{handle_num(res['stat']['coin'])} | 收藏：{handle_num(res['stat']['favorite'])}"
             desc = f"简介：{res['desc']}"
             desc_list = desc.split("\n")
             desc = "".join(i + "\n" for i in desc_list if i)
