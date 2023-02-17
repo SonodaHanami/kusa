@@ -148,6 +148,10 @@ class Analysis:
         msg = message['raw_message']
         group_id = str(message.get("group_id", ''))
 
+        if re.search(r"(b23.tv)|(bili(22|23|33|2233).cn)", msg, re.I):
+            # 提前处理短链接，避免解析到其他的
+            msg = await self.b23_extract(msg)
+
         # try:
         # 提取url
         url, page, time_location = self.extract(msg)
@@ -234,6 +238,12 @@ class Analysis:
         except Exception:
             return "", None, None
 
+    async def b23_extract(self, text: str) -> str:
+        b23 = re.compile(r"b23.tv/(\w+)|(bili(22|23|33|2233).cn)/(\w+)", re.I).search(text.replace("\\", ""))
+        url = f"https://{b23[0]}"
+        async with aiohttp.request("GET", url, timeout=aiohttp.client.ClientTimeout(10)) as resp:
+            return str(resp.url)
+
     async def search_bili_by_title(self, title):
         search_url = f"https://api.bilibili.com/x/web-interface/wbi/search/all/v2?keyword={urllib.parse.quote(title)}"
 
@@ -278,7 +288,7 @@ class Analysis:
                 else:
                     vurl += f"?t={time_location}"
             pubdate = strftime("%Y-%m-%d %H:%M:%S", localtime(res["pubdate"]))
-            tname = f"UP：{res['owner']['name']} | 类型：{res['tname']} | 日期：{pubdate}"
+            tname = f"UP：{res['owner']['name']} | 类型：{res['tname']}\n日期：{pubdate}"
             stat = f"播放：{handle_num(res['stat']['view'])} | 弹幕：{handle_num(res['stat']['danmaku'])} | 评论：{handle_num(res['stat']['reply'])}\n"
             stat += f"点赞：{handle_num(res['stat']['like'])} | 硬币：{handle_num(res['stat']['coin'])} | 收藏：{handle_num(res['stat']['favorite'])}"
             desc = f"简介：{res['desc']}"
@@ -292,7 +302,6 @@ class Analysis:
         except Exception as e:
             reply = "视频解析出错--Error: {}".format(type(e))
             return reply, None
-
 
     async def bangumi_detail(self, url: str, time_location: str = None):
         try:
@@ -333,7 +342,6 @@ class Analysis:
             reply = "番剧解析出错--Error: {}".format(type(e))
             reply += f"\n{url}"
             return reply, None
-
 
     async def live_detail(self, url: str):
         try:
@@ -384,7 +392,6 @@ class Analysis:
             reply = "直播间解析出错--Error: {}".format(type(e))
             return reply, None
 
-
     async def article_detail(self, url: str, cvid: str):
         try:
             async with aiohttp.request(
@@ -414,7 +421,6 @@ class Analysis:
         except Exception as e:
             reply = "专栏解析出错--Error: {}".format(type(e))
             return reply, None
-
 
     async def dynamic_detail(self, url: str):
         try:
