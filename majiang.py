@@ -459,7 +459,8 @@ class Majsoul:
         end_of_week = start_of_week + 86400 * 7 - 1
         logger.info('雀魂雷达开始生成周报')
         # 获取所有人上周的所有比赛
-        all_records = []
+        all_record = []
+        all_uuid = []
         for pid in madata['majsoul']['players']:
             for m in ['3', '4']:
                 last_end = madata['majsoul']['players'][pid][m]['last_end']
@@ -475,7 +476,10 @@ class Majsoul:
                     # logger.info(f'{pid} {m} 没有发现任何比赛')
                     continue
                 for record in records:
-                    all_records.append(record)
+                    # 去重，防止群友排到同一桌重复计算
+                    if record['uuid'] not in all_uuid:
+                        all_record.append(record)
+                        all_uuid.append(record['uuid'])
         for group in madata['subscribe_groups']:
             players_in_group = []
             for s in madata['majsoul']['subscribers']:
@@ -487,7 +491,7 @@ class Majsoul:
             for player in players_in_group:
                 player_total_matches = 0
                 player_total_delta = 0
-                for record in all_records:
+                for record in all_record:
                     for rp in record['players']:
                         if rp['accountId'] == int(player):
                             player_total_matches += 1
