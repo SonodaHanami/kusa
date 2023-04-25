@@ -8,7 +8,8 @@ from random import randint as ri
 
 from .utils import *
 from . import (
-    bilibili, github, mahiru, majiang, roll,
+    bilibili, github, group_notice,
+    mahiru, majiang, roll,
     setu, whois,
 )
 
@@ -35,7 +36,7 @@ ABCDEFGHIJKLMNOPQRSTUVWXYZ
 class Kusa:
     Passive = True
     Active = True
-    Request = False
+    Request = True
 
     def __init__(self, **kwargs):
         logger.info('初始化kusa 开始，草！')
@@ -47,6 +48,7 @@ class Kusa:
         self.kusa_modules = [
             bilibili.Bangumi(**kwargs),
             github.Github(**kwargs),
+            group_notice.GroupNotice(**kwargs),
             mahiru.Mahiru(**kwargs),
             majiang.Majiang(**kwargs),
             roll.Roll(**kwargs),
@@ -108,6 +110,17 @@ class Kusa:
         await self.repeater(message, replys)
 
         return '\n'.join(replys) if replys else None
+
+
+    async def handle_notice_async(self, ev):
+        for module in self.kusa_modules:
+            if hasattr(module, 'handle_notice_async'):
+                reply = await module.handle_notice_async(ev)
+                if reply is None:
+                    continue
+                if isinstance(reply, str):
+                    replys.append(reply)
+        return None
 
 
     async def admin(self, message):
