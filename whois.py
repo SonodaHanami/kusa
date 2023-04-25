@@ -27,6 +27,7 @@ class Whois:
         if not os.path.exists(MEMBER):
             dumpjson(DEFAULT_DATA, MEMBER)
 
+        self.api = kwargs['bot_api']
         self._rosters = {}
         self._update()
 
@@ -43,8 +44,13 @@ class Whois:
             atbot = True
 
 
+        if atbot and msg == '初始化群友':
+            return await self.init_group_member(group)
+
         if msg == '查询群友':
             return self.get_group_member(group)
+        if msg == '查询群友名单':
+            return self.get_group_member_list(group)
 
         if re.search('是不是', msg):
             prm = re.search('(.+)是不是(.+)[?？]', msg)
@@ -183,8 +189,7 @@ class Whois:
                 return f'我们群里有{subject}吗？'
             data[group][sbj['uid']] = []
         data[group][sbj['uid']].append(obj)
-        with open(MEMBER, 'w', encoding='utf8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+        dumpjson(data, MEMBER)
         self._update()
         if not sbj["name"]:
             sbj["name"] = subject
@@ -198,8 +203,7 @@ class Whois:
         data = loadjson(MEMBER)
         data[group][user].remove(name)
         data[group][user] = [name,] + data[group][user]
-        with open(MEMBER, 'w', encoding='utf8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
+        dumpjson(data, MEMBER)
         self._update()
         return f'好的，{name}'
 
@@ -217,8 +221,7 @@ class Whois:
             if len(data[group][user]) == 0:
                 data[group].pop(user)
                 reply += '\n现在群友名单里没有你了'
-            with open(MEMBER, 'w', encoding='utf8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
+            dumpjson(data, MEMBER)
             self._update()
             return reply
         else:
@@ -237,8 +240,7 @@ class Whois:
                 return f'唔得，你只剩下{data[group][user][0]}了'
             to_del = data[group][user][1:]
             data[group][user] = data[group][user][0:1]
-            with open(MEMBER, 'w', encoding='utf8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
+            dumpjson(data, MEMBER)
             self._update()
             return f'好，你不再是{"，".join(to_del)}了'
 
@@ -291,9 +293,46 @@ class Whois:
     def get_group_member(self, group):
         data = loadjson(MEMBER)
         if group in data and len(data[group]):
+            return '本群有{}群友'.format(len(data[group]))
+
+    def get_group_member_list(self, group):
+        data = loadjson(MEMBER)
+        if group in data and len(data[group]):
             return '本群群友有{}'.format("，".join([data[group][p][0] for p in data[group].keys()]))
         else:
             return "没有查询到本群群友"
+
+
+    async def init_group_member(self, group):
+        data = loadjson(MEMBER)
+        group_member_list = await self.api.get_group_member_list(group_id=group)
+        nickname_set = set()
+        user_id_set = set()
+        if group not in data:
+            data[group] = {}
+        cnt_old = len(data[group])
+        cnt_add = 0
+        cnt_del = 0
+        cnt_new = len(group_member_list)
+        for member in group_member_list:
+            nickname = member.get('card', '')
+            if not nickname:
+                nickname = member.get('nickname', '无法获取昵称')
+            while nickname in nickname_set:
+                nickname += '2'
+            nickname_set.add(nickname)
+            user_id_set.add(str(member['user_id']))
+            if str(member['user_id']) not in data[group]:
+                data[group][str(member['user_id'])] = [nickname,]
+                cnt_add += 1
+        for member in list(data[group].keys()):
+            if member not in user_id_set:
+                data[group].pop(member)
+                cnt_del += 1
+        dumpjson(data, MEMBER)
+        return '初始化群友完成，原来有{}群友，新增了{}群友，移除了{}群友，现在有{}群友'.format(
+            cnt_old, cnt_add, cnt_del, cnt_new
+        )
 
 
     def _update(self):

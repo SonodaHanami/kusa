@@ -46,6 +46,7 @@ class Kusa:
         kwargs.update({'whois': self.whois})
 
         self.kusa_modules = [
+            bilibili.Analysis(**kwargs),
             bilibili.Bangumi(**kwargs),
             github.Github(**kwargs),
             group_notice.GroupNotice(**kwargs),
@@ -66,6 +67,11 @@ class Kusa:
             if hasattr(k, 'jobs'):
                 jobs.append(k.jobs())
         return reduce(lambda x, y: x+y, jobs)
+
+    def register_routes(self, quart_app):
+        for m in self.kusa_modules:
+            if hasattr(m, 'register_routes'):
+                m.register_routes(quart_app)
 
     def match(self, msg):
         return 1

@@ -21,8 +21,13 @@ class Roll:
         msg = message['raw_message']
         group = str(message.get("group_id", ''))
         user = str(message.get("user_id", 0))
-        replys = []
 
+        result = self.get_roll_result(msg)
+        if result:
+            return '[CQ:reply,id={}]{}'.format(message['message_id'], result)
+
+    def get_roll_result(self, msg):
+        replys = []
         prm = re.match('([/!\.]?roll|[/!\.]r)(.*)', msg)
         if prm:
             try:

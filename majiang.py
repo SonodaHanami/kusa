@@ -264,7 +264,7 @@ class Majiang:
         self.MINUTE = random.randint(0, 55)
         self.DONE = True
         sends = []
-        logger.info(f'NEXT MINUTE={self.MINUTE}')
+        logger.info(f'Majiang next MINUTE={self.MINUTE}')
         for msg in news:
             for g in groups:
                 if str(g) in msg['target_groups']:
