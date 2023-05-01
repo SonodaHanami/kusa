@@ -247,7 +247,7 @@ class Majiang:
         trigger = CronTrigger(hour='9,18', minute='*/5')
         get_news = (trigger, self.get_news_async)
         trigger = CronTrigger(day_of_week='0', hour='12', minute='5')
-        get_weekly_summary = (trigger, self.majsoul.get_weekly_summary)
+        get_weekly_summary = (trigger, self.get_weekly_summary)
         return (get_news, get_weekly_summary)
 
     async def get_news_async(self):
@@ -257,23 +257,73 @@ class Majiang:
         if self.DONE or minute < self.MINUTE:
             return None
         madata = loadjson(MAJIANG)
+        memberdata = loadjson(MEMBER)
         groups = madata.get('subscribe_groups')
         if not groups:
             return None
-        news = await self.majsoul.get_news_async()
+        # 获取登录号信息
+        bot_info = {}
+        try:
+            bot_info = await self.api.get_login_info()
+        except Exception as e:
+            logger.warning(str(e))
+        news = await self.majsoul.get_news_async(bot_info=bot_info)
         self.MINUTE = random.randint(0, 55)
         self.DONE = True
-        sends = []
         logger.info(f'Majiang next MINUTE={self.MINUTE}')
-        for msg in news:
-            for g in groups:
-                if str(g) in msg['target_groups']:
-                    sends.append({
-                        'message_type': 'group',
-                        'group_id': g,
-                        'message': msg['message']
-                    })
-        return sends
+        for group in madata['subscribe_groups']:
+            replys = []
+            players_in_group = []
+            for qq in madata['majsoul']['subscribers']:
+                if qq in memberdata[group]:
+                    players_in_group.append(qq)
+            for qq in players_in_group:
+                for n in news.get(qq, []):
+                    replys.append(n)
+            if replys:
+                random.shuffle(replys)
+                replys.reverse()
+                replys.append('雀魂雷达动叻！')
+                replys.reverse()
+            else:
+                continue
+            await self.api.send_group_forward_msg(
+                group_id=group,
+                messages=[{
+                    'type': 'node',
+                    'data': {
+                        'name': '放浪雀士',
+                        # 'uin': bot_info.get('user_id', 0),
+                        'uin': random.choice(list(memberdata[group].keys())),
+                        'content': reply,
+                    }
+                } for reply in replys]
+            )
+        # sends = []
+        # for msg in news:
+        #     for g in groups:
+        #         if str(g) in msg['target_groups']:
+        #             sends.append({
+        #                 'message_type': 'group',
+        #                 'group_id': g,
+        #                 'message': msg['message']
+        #             })
+        # return sends
+
+    async def get_weekly_summary(self):
+        # 获取登录号信息
+        bot_info = {}
+        try:
+            bot_info = await self.api.get_login_info()
+        except Exception as e:
+            logger.warning(str(e))
+        news = await self.majsoul.get_weekly_summary(bot_info=bot_info)
+        for group, messages in news.items():
+            await self.api.send_group_forward_msg(
+                group_id=group,
+                messages=messages,
+            )
+
 
 class Majsoul:
     def get_account_zone(self, account_id):
@@ -382,8 +432,8 @@ class Majsoul:
     def get_start_of_week(self, week=0):
         return int((datetime.now() + timedelta(days=-datetime.now().weekday(), weeks=week)).replace(hour=0, minute=0, second=0).timestamp())
 
-    def get_weekly_summary(self, week_offset=-1):
-        news = []
+    async def get_weekly_summary(self, week_offset=-1, bot_info={}):
+        news = {}
         madata = loadjson(MAJIANG)
         memberdata = loadjson(MEMBER)
         start_of_week = self.get_start_of_week(week_offset)
@@ -412,6 +462,7 @@ class Majsoul:
                         all_record.append(record)
                         all_uuid.append(record['uuid'])
         for group in madata['subscribe_groups']:
+            replys = []
             players_in_group = []
             for s in madata['majsoul']['subscribers']:
                 if s in memberdata[group]:
@@ -456,71 +507,76 @@ class Majsoul:
             summary.sort(key=lambda x:-x['average_delta'])
             max_average_delta = summary[0]
             min_average_delta = summary[-1]
-            message = '雀魂周报来了！({} - {})\n\n{}\n'.format(
+            replys.append('雀魂周报来了！({} - {})'.format(
                 datetime.fromtimestamp(start_of_week).strftime('%m/%d'),
                 datetime.fromtimestamp(end_of_week).strftime('%m/%d'),
-                total_summary,
-            )
+            ))
+            replys.append(total_summary)
             if group_total_matches > 0:
                 group_average_delta = group_total_delta / group_total_matches
-                message += '\n群友们一共打了{}局，{}{}，局均{}{:.2f}'.format(
+                replys.append('群友们一共打了{}局，{}{}，局均{}{:.2f}'.format(
                     group_total_matches,
                     '+' if group_total_delta > 0 else '±' if group_total_delta == 0 else '',
                     group_total_delta,
                     '+' if group_average_delta > 0 else '±' if group_average_delta == 0 else '',
                     group_average_delta,
-                )
+                ))
             if max_matches['total_matches'] > 0:
-                message += '\n打得最多：{}{} {}局'.format(
+                replys.append('打得最多：{}{} {}局'.format(
                     ZONE_TAG.get(self.get_account_zone(max_matches['player'])),
                     madata['majsoul']['players'][max_matches['player']]['nickname'],
                     max_matches['total_matches']
-                )
+                ))
             if max_delta['total_delta'] > 0:
-                message += '\n上分最多：{}{} {}{}'.format(
+                replys.append('上分最多：{}{} {}{}'.format(
                     ZONE_TAG.get(self.get_account_zone(max_delta['player'])),
                     madata['majsoul']['players'][max_delta['player']]['nickname'],
                     '+' if max_delta['total_delta'] > 0 else '±' if max_delta['total_delta'] == 0 else '',
                     max_delta['total_delta']
-                )
+                ))
             if max_average_delta['average_delta'] > 0:
-                message += '\n局均最高：{}{} {}{:.2f}'.format(
+                replys.append('局均最高：{}{} {}{:.2f}'.format(
                     ZONE_TAG.get(self.get_account_zone(max_average_delta['player'])),
                     madata['majsoul']['players'][max_average_delta['player']]['nickname'],
                     '+',
                     max_average_delta['average_delta']
-                )
+                ))
             if min_delta['total_delta'] < 0:
-                message += '\n掉分最多：{}{} {}{}'.format(
+                replys.append('掉分最多：{}{} {}{}'.format(
                     ZONE_TAG.get(self.get_account_zone(min_delta['player'])),
                     madata['majsoul']['players'][min_delta['player']]['nickname'],
                     '+' if min_delta['total_delta'] > 0 else '±' if min_delta['total_delta'] == 0 else '',
                     min_delta['total_delta']
-                )
+                ))
             if min_average_delta['average_delta'] < 0:
-                message += '\n局均最低：{}{} {}{:.2f}'.format(
+                replys.append('局均最低：{}{} {}{:.2f}'.format(
                     ZONE_TAG.get(self.get_account_zone(min_average_delta['player'])),
                     madata['majsoul']['players'][min_average_delta['player']]['nickname'],
                     '',
                     min_average_delta['average_delta']
-                )
-            news.append({
-                'message': message,
-                'message_type': 'group',
-                'group_id': group,
-            })
+                ))
+            news[group] = [{
+                'type': 'node',
+                'data': {
+                    'name': '放浪雀士',
+                    'uin': random.choice(list(memberdata[group].keys())),
+                    'content': reply,
+                }
+            } for reply in replys]
         return news
 
-    async def get_news_async(self):
+    async def get_news_async(self, bot_info={}):
         '''
         返回最新消息
         '''
-        news = []
+        news = {}
+        news_cnt = 0
         madata = loadjson(MAJIANG)
         memberdata = loadjson(MEMBER)
         now = int(datetime.now().timestamp())
         logger.info('雀魂雷达开始扫描')
         records = None
+        # 获取所有人的数据
         for pid in madata['majsoul']['players']:
             for m in ['3', '4']:
                 msg = ''
@@ -534,14 +590,16 @@ class Majsoul:
                     records = requests.get(url).json()
                 except Exception as e:
                     logger.warning(e)
+                    logger.info(url)
                     continue
                 if not records:
                     # logger.info(f'{pid} {m} '没有发现任何比赛')
                     continue
-
                 if records[0] and records[0].get('startTime') > last_end:
                     logger.info(f'{pid} {m} 发现最近比赛更新！ {len(records)}')
                 else:
+                    # 实际上请求的API就是从上次比赛结束后更新的比赛
+                    # 返回的结果如果存在records[0]，那么必定是更新的比赛
                     logger.info(f'{pid} {m} 没有发现最近比赛更新')
                     continue
                 if records[0].get('endTime'):
@@ -659,22 +717,22 @@ class Majsoul:
                                 cur_score,
                                 RANK_SCORE[cur_rank],
                             )
-                news.append(
-                    {
-                        'message': msg,
-                        'user'   : madata['majsoul']['players'][pid]['subscribers']
-                    }
-                )
+                news_cnt += 1
+                for subscriber in madata['majsoul']['players'][pid]['subscribers']:
+                    if subscriber in news:
+                        news[subscriber].append(msg)
+                    else:
+                        news[subscriber] = [msg]
 
         dumpjson(madata, MAJIANG)
 
-        logger.info(f'雀魂雷达扫描到了{len(news)}个新事件')
+        logger.info(f'雀魂雷达扫描到了{news_cnt}个新事件')
 
-        for msg in news:
-            msg['target_groups'] = []
-            for u in msg['user']:
-                for g in memberdata:
-                    if u in memberdata[g] and g not in msg['target_groups']:
-                        msg['target_groups'].append(g)
+        # for msg in news:
+        #     msg['target_groups'] = []
+        #     for u in msg['user']:
+        #         for g in memberdata:
+        #             if u in memberdata[g] and g not in msg['target_groups']:
+        #                 msg['target_groups'].append(g)
 
         return news
