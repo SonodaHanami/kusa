@@ -330,9 +330,11 @@ class Whois:
                 data[group].pop(member)
                 cnt_del += 1
         dumpjson(data, MEMBER)
-        return '初始化群友完成，原来有{}群友，新增了{}群友，移除了{}群友，现在有{}群友'.format(
-            cnt_old, cnt_add, cnt_del, cnt_new
+        reply = '群 {} 初始化群友完成，原来有{}群友，新增了{}群友，移除了{}群友，现在有{}群友'.format(
+            group, cnt_old, cnt_add, cnt_del, cnt_new
         )
+        logger.info(reply)
+        return reply
 
 
     def _update(self):
