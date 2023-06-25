@@ -463,6 +463,10 @@ class Majsoul:
                         all_uuid.append(record['uuid'])
         for group in madata['subscribe_groups']:
             replys = []
+            replys.append('雀魂周报来了！({} - {})'.format(
+                datetime.fromtimestamp(start_of_week).strftime('%m/%d'),
+                datetime.fromtimestamp(end_of_week).strftime('%m/%d'),
+            ))
             players_in_group = []
             for s in madata['majsoul']['subscribers']:
                 if s in memberdata[group]:
@@ -498,63 +502,60 @@ class Majsoul:
                     player['total_delta']
                 ) for player in summary
             ])
+            replys.append(total_summary)
             for player in summary:
                 if player['total_matches'] == 0:
                     summary.remove(player)
-            summary.sort(key=lambda x:-x['total_delta'])
-            max_delta = summary[0]
-            min_delta = summary[-1]
-            summary.sort(key=lambda x:-x['average_delta'])
-            max_average_delta = summary[0]
-            min_average_delta = summary[-1]
-            replys.append('雀魂周报来了！({} - {})'.format(
-                datetime.fromtimestamp(start_of_week).strftime('%m/%d'),
-                datetime.fromtimestamp(end_of_week).strftime('%m/%d'),
-            ))
-            replys.append(total_summary)
-            if group_total_matches > 0:
-                group_average_delta = group_total_delta / group_total_matches
-                replys.append('群友们一共打了{}局，{}{}，局均{}{:.2f}'.format(
-                    group_total_matches,
-                    '+' if group_total_delta > 0 else '±' if group_total_delta == 0 else '',
-                    group_total_delta,
-                    '+' if group_average_delta > 0 else '±' if group_average_delta == 0 else '',
-                    group_average_delta,
-                ))
-            if max_matches['total_matches'] > 0:
-                replys.append('打得最多：{}{} {}局'.format(
-                    ZONE_TAG.get(self.get_account_zone(max_matches['player'])),
-                    madata['majsoul']['players'][max_matches['player']]['nickname'],
-                    max_matches['total_matches']
-                ))
-            if max_delta['total_delta'] > 0:
-                replys.append('上分最多：{}{} {}{}'.format(
-                    ZONE_TAG.get(self.get_account_zone(max_delta['player'])),
-                    madata['majsoul']['players'][max_delta['player']]['nickname'],
-                    '+' if max_delta['total_delta'] > 0 else '±' if max_delta['total_delta'] == 0 else '',
-                    max_delta['total_delta']
-                ))
-            if max_average_delta['average_delta'] > 0:
-                replys.append('局均最高：{}{} {}{:.2f}'.format(
-                    ZONE_TAG.get(self.get_account_zone(max_average_delta['player'])),
-                    madata['majsoul']['players'][max_average_delta['player']]['nickname'],
-                    '+',
-                    max_average_delta['average_delta']
-                ))
-            if min_delta['total_delta'] < 0:
-                replys.append('掉分最多：{}{} {}{}'.format(
-                    ZONE_TAG.get(self.get_account_zone(min_delta['player'])),
-                    madata['majsoul']['players'][min_delta['player']]['nickname'],
-                    '+' if min_delta['total_delta'] > 0 else '±' if min_delta['total_delta'] == 0 else '',
-                    min_delta['total_delta']
-                ))
-            if min_average_delta['average_delta'] < 0:
-                replys.append('局均最低：{}{} {}{:.2f}'.format(
-                    ZONE_TAG.get(self.get_account_zone(min_average_delta['player'])),
-                    madata['majsoul']['players'][min_average_delta['player']]['nickname'],
-                    '',
-                    min_average_delta['average_delta']
-                ))
+            if len(summary):
+                summary.sort(key=lambda x:-x['total_delta'])
+                max_delta = summary[0]
+                min_delta = summary[-1]
+                summary.sort(key=lambda x:-x['average_delta'])
+                max_average_delta = summary[0]
+                min_average_delta = summary[-1]
+                if group_total_matches > 0:
+                    group_average_delta = group_total_delta / group_total_matches
+                    replys.append('群友们一共打了{}局，{}{}，局均{}{:.2f}'.format(
+                        group_total_matches,
+                        '+' if group_total_delta > 0 else '±' if group_total_delta == 0 else '',
+                        group_total_delta,
+                        '+' if group_average_delta > 0 else '±' if group_average_delta == 0 else '',
+                        group_average_delta,
+                    ))
+                if max_matches['total_matches'] > 0:
+                    replys.append('打得最多：{}{} {}局'.format(
+                        ZONE_TAG.get(self.get_account_zone(max_matches['player'])),
+                        madata['majsoul']['players'][max_matches['player']]['nickname'],
+                        max_matches['total_matches']
+                    ))
+                if max_delta['total_delta'] > 0:
+                    replys.append('上分最多：{}{} {}{}'.format(
+                        ZONE_TAG.get(self.get_account_zone(max_delta['player'])),
+                        madata['majsoul']['players'][max_delta['player']]['nickname'],
+                        '+' if max_delta['total_delta'] > 0 else '±' if max_delta['total_delta'] == 0 else '',
+                        max_delta['total_delta']
+                    ))
+                if max_average_delta['average_delta'] > 0:
+                    replys.append('局均最高：{}{} {}{:.2f}'.format(
+                        ZONE_TAG.get(self.get_account_zone(max_average_delta['player'])),
+                        madata['majsoul']['players'][max_average_delta['player']]['nickname'],
+                        '+',
+                        max_average_delta['average_delta']
+                    ))
+                if min_delta['total_delta'] < 0:
+                    replys.append('掉分最多：{}{} {}{}'.format(
+                        ZONE_TAG.get(self.get_account_zone(min_delta['player'])),
+                        madata['majsoul']['players'][min_delta['player']]['nickname'],
+                        '+' if min_delta['total_delta'] > 0 else '±' if min_delta['total_delta'] == 0 else '',
+                        min_delta['total_delta']
+                    ))
+                if min_average_delta['average_delta'] < 0:
+                    replys.append('局均最低：{}{} {}{:.2f}'.format(
+                        ZONE_TAG.get(self.get_account_zone(min_average_delta['player'])),
+                        madata['majsoul']['players'][min_average_delta['player']]['nickname'],
+                        '',
+                        min_average_delta['average_delta']
+                    ))
             news[group] = [{
                 'type': 'node',
                 'data': {
