@@ -308,8 +308,12 @@ class Majiang:
         except Exception as e:
             logger.warning(str(e))
         news = await self.majsoul.get_weekly_summary(bot_info=bot_info)
+        memberdata = loadjson(MEMBER)
         for group, messages in news.items():
-            await self.api.send_group_forward_msg(group_id=group, messages=messages)
+            await self.api.send_group_forward_msg(
+                group_id=group,
+                messages=[self.get_message_node(random.choice(list(memberdata[group].keys())), m) for m in messages]
+            )
 
 
 class Majsoul:
@@ -543,7 +547,7 @@ class Majsoul:
                         '',
                         min_average_delta['average_delta']
                     ))
-            news[group] = [self.get_message_node(random.choice(list(memberdata[group].keys())), m) for m in messages]
+            news[group] = messages
         return news
 
     async def get_news_async(self, bot_info={}):
