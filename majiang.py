@@ -130,7 +130,7 @@ class Majiang:
 
         prm = re.match('(怎么)?绑定 *雀魂(牌谱屋)?(.*)', msg, re.I)
         if prm:
-            usage = '使用方法：\n绑定雀魂牌谱屋 雀魂牌谱屋数字ID\n雀魂牌谱屋：https://amae-koromo.sapk.ch/'
+            usage = 'https://docs.qq.com/sheet/DWG5uaFRrS0hjRlVL'
             result = '绑定{}'
             try:
                 if prm[1]:
