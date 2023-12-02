@@ -67,7 +67,7 @@ class Whois:
                 return IDK
 
         if atbot and msg.startswith('我不是'):
-            return self.del_alias(group, user, msg[3:])
+            return await self.del_alias(group, user, msg[3:])
         if atbot and re.match('.+是.*', msg):
             prm = re.match('(.+)是(.*)', msg)
             try:
@@ -208,7 +208,7 @@ class Whois:
         return f'好的，{name}'
 
 
-    def del_alias(self, group, user, name):
+    async def del_alias(self, group, user, name):
         self._update()
         data = loadjson(MEMBER)
         if group not in data:
@@ -220,7 +220,8 @@ class Whois:
             data[group][user].remove(name)
             if len(data[group][user]) == 0:
                 data[group].pop(user)
-                reply += '\n现在群友名单里没有你了'
+                await self.init_group_member(group)
+                reply += '\n现在你是{}了'.format(data[group][user][0])
             dumpjson(data, MEMBER)
             self._update()
             return reply
